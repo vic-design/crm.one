@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import { SharedProps } from '@inertiajs/vue3';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -13,6 +14,15 @@ declare module 'vite/client' {
     }
 }
 
+declare module '@inertiajs/vue3' {
+    export interface SharedProps {
+        name: string,
+        auth: Auth,
+        sidebarOpen: boolean,
+        [key: string]: unknown,
+    }
+}
+
 declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
@@ -21,13 +31,20 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             [key: string]: unknown;
         };
-    }
+    };
 }
 
 declare module 'vue' {
     interface ComponentCustomProperties {
         $inertia: typeof Router;
-        $page: Page;
+        $page: {
+            props: SharedProps;
+            url: string;
+            component: string;
+            version: string | null;
+            scrollRegions: Array<{ top: number; left: number }>;
+            rememberedState: Record<string, unknown>;
+        };
         $headManager: ReturnType<typeof createHeadManager>;
     }
 }
