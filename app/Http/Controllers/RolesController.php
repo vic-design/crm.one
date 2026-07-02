@@ -125,10 +125,14 @@ class RolesController extends Controller
      */
     public function destroy(Role $role): RedirectResponse
     {
-        // В Spatie связь с пользователями называется users
         if ($role->users()->exists()) {
             return redirect()->back()
                 ->with('error', 'Нельзя удалить роль, к которой привязаны пользователи');
+        }
+
+        if ($role->name === 'admin') {
+            return redirect()->back()
+                ->with('error', 'Удаление корневой роли администратора запрещено системой');
         }
 
         $role->delete();

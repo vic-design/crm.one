@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'; // Исправленный импорт из ядра Vue 3
+import { ref } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import {
     Dialog,
@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import { AlertTriangle } from 'lucide-vue-next';
+
+import roles from '@/routes/roles';
 
 const isOpen = ref(false);
 const roleId = ref<number | null>(null);
@@ -30,7 +32,7 @@ const openDialog = (id: number, name: string) => {
 const confirmDelete = () => {
     if (!roleId.value) return;
 
-    form.delete(route('roles.destroy', roleId.value), {
+    form.delete(roles.destroy(roleId.value).url, {
         onSuccess: () => {
             isOpen.value = false;
         },
@@ -42,7 +44,7 @@ defineExpose({ openDialog });
 
 <template>
     <Dialog v-model:open="isOpen">
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100">
             <DialogHeader>
                 <div class="flex items-center space-x-3 mb-2">
                     <div class="p-2 bg-destructive/10 rounded-full text-destructive animate-pulse">
@@ -51,9 +53,9 @@ defineExpose({ openDialog });
                     <DialogTitle>Удаление роли</DialogTitle>
                 </div>
 
-                <DialogDescription class="text-sm text-muted-foreground pt-2">
+                <DialogDescription class="text-sm text-zinc-400 pt-2">
                     Вы действительно хотите удалить роль
-                    <span class="block mt-1 text-base font-semibold text-destructive bg-destructive/5 px-2 py-1 rounded border border-destructive/20 select-all">
+                    <span class="block mt-1 text-base font-semibold text-destructive bg-destructive/10 px-2 py-1 rounded border border-destructive/20 select-all">
                         {{ roleName }}
                     </span>
                     Это действие необратимо и сотрет все связи с правами доступа.
