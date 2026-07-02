@@ -34,17 +34,4 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Получить роли пользователя.
-     */
-    public function roles()
-    {
-        return $this->belongsToMany(
-            \Spatie\Permission\Models\Role::class,
-            'model_has_roles',
-            'role_id',
-            'model_id'
-        );
-    }
-
 }
