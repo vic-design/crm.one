@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import users from '@/routes/users';
@@ -12,17 +12,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import Button from '@/components/ui/button/Button.vue';
-import { Pencil, Plus, Trash } from 'lucide-vue-next';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import {
     Pagination,
     PaginationContent,
@@ -31,35 +20,37 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from '@/components/ui/pagination';
+import Button from '@/components/ui/button/Button.vue';
+import { Pencil, Plus, Trash } from 'lucide-vue-next';
+import { usePermission } from '@/composables/usePermission.js';
 
-// --- Types ---
+// Импорт диалогов
+import UserCreateDialog from './Partials/UserCreateDialog.vue';
+import UserEditDialog from './Partials/UserEditDialog.vue';
+import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
+
 interface User {
-    id: number;
-    name: string;
-    email: string;
+  id: number;
+  name: string;
+  email: string;
 }
 
 interface UserList {
-    data: User[];
-    current_page: number;
-    per_page: number;
-    total: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
-    links: { url: string | null; label: string; active: boolean }[];
+  data: User[];
+  current_page: number;
+  per_page: number;
+  total: number;
+  prev_page_url: string | null;
+  next_page_url: string | null;
+  links: { url: string | null; label: string; active: boolean }[];
 }
 
-interface Props {
+const props = defineProps<{
     userList: UserList;
-}
+}>();
 
-// --- Props ---
-const props = defineProps<Props>();
+const { can } = usePermission();
 
-// --- State ---
-const userToDelete = ref<User | null>(null);
-
-// --- Breadcrumbs ---
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Пользователи',
@@ -67,14 +58,20 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// --- Methods ---
-const openDeleteDialog = (user: User) => {
-    userToDelete.value = user;
+const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
+const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
+const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
+
+const openEdit = (user: User) => {
+    if (!editDialogRef.value) return;
+    editDialogRef.value.openDialog({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+    });
 };
 
-const closeDeleteDialog = () => {
-    userToDelete.value = null;
-};
+const numericLinks = computed(() => props.userList.links.slice(1, -1));
 
 const getPageNumber = (index: number) => {
     const offset = (props.userList.current_page - 1) * props.userList.per_page;
@@ -85,134 +82,118 @@ const getPageNumber = (index: number) => {
 <template>
     <Head title="Пользователи" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-            <!-- Header Actions -->
-            <div class="flex justify-end">
-                <Link :href="users.create()">
-                    <Button type="button">
-                        <Plus class="mr-2 h-4 w-4" />
-                        Создать
-                    </Button>
-                </Link>
+        <div class="grid grid-cols-3 content-start gap-4">
+        <div class="flex h-full col-span-3 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div class="text-right" v-if="can('create users')">
+            <Button type="button" @click="createDialogRef?.openDialog()">
+                <Plus class="mr-2 h-4 w-4" /> Создать
+            </Button>
             </div>
 
-            <!-- Table -->
             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead class="w-[80px]">№</TableHead>
-                        <TableHead>Имя</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead class="text-right">Действия</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow v-for="(user, index) in userList.data" :key="user.id">
-                        <TableCell class="font-medium">
-                            {{ getPageNumber(index) }}
-                        </TableCell>
-                        <TableCell>{{ user.name }}</TableCell>
-                        <TableCell>{{ user.email }}</TableCell>
-                        <TableCell class="text-right space-x-2">
-                            <Link :href="users.edit(user.id)">
-                                <Button type="button" variant="outline" size="icon" data-test="edit-user-button">
-                                    <Pencil class="h-4 w-4" />
-                                </Button>
-                            </Link>
-
-                            <Dialog :open="!!userToDelete">
-                                <DialogTrigger as-child>
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="icon"
-                                        data-test="delete-user-button"
-                                        @click="openDeleteDialog(user)"
-                                    >
-                                        <Trash class="h-4 w-4" />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent class="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle>Удаление пользователя</DialogTitle>
-                                        <DialogDescription>
-                                            Вы действительно хотите удалить пользователя
-                                            <span class="font-bold text-foreground">{{ userToDelete?.name }}</span>?
-                                            <br/>
-                                            Это действие нельзя отменить.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <DialogFooter>
-                                        <Button variant="outline" @click="closeDeleteDialog">
-                                            Отмена
-                                        </Button>
-                                        <Link
-                                            :href="users.destroy(userToDelete?.id || 0)"
-                                            method="delete"
-                                            as="button"
-                                        >
-                                            <Button type="submit" variant="destructive">
-                                                Удалить
-                                            </Button>
-                                        </Link>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </TableCell>
-                    </TableRow>
-
-                    <!-- Empty State -->
-                    <TableRow v-if="!userList.data.length">
-                        <TableCell :colspan="4" class="h-24 text-center">
-                            Пользователи не найдены
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
+            <TableHeader>
+                <TableRow>
+                <TableHead class="w-[80px]">№</TableHead>
+                <TableHead>Имя</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead class="text-right">Действия</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <TableRow v-for="(user, index) in userList?.data" :key="user.id">
+                <TableCell class="font-medium">
+                    {{ getPageNumber(index) }}
+                </TableCell>
+                <TableCell class="font-medium text-white">{{ user.name }}</TableCell>
+                <TableCell>{{ user.email }}</TableCell>
+                <TableCell class="text-right whitespace-nowrap space-x-2">
+                    <Button
+                    v-if="can('edit users')"
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    @click="openEdit(user)"
+                    >
+                    <Pencil class="h-4 w-4" />
+                    </Button>
+                    <Button
+                    v-if="can('delete users')"
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    @click="deleteDialogRef?.openDialog(user.id, user.name)"
+                    >
+                    <Trash class="h-4 w-4" />
+                    </Button>
+                </TableCell>
+                </TableRow>
+                <TableRow v-if="!userList?.data.length">
+                <TableCell colspan="4" class="h-24 text-center text-zinc-500">
+                    Пользователи не найдены
+                </TableCell>
+                </TableRow>
+            </TableBody>
             </Table>
 
-            <!-- Pagination -->
-            <div v-if="userList.total > userList.per_page" class="flex justify-between items-center mt-4">
-                <div class="text-sm text-muted-foreground w-35">
-                    Показано {{ userList.data.length }} из {{ userList.total }}
-                </div>
-                <Pagination v-slot="{ page }" :total="userList.total" :items-per-page="userList.per_page" :page="userList.current_page" class="pr-50">
-                    <PaginationContent>
-                        <Link :href="userList.prev_page_url || '#'">
-                            <PaginationPrevious :class="{ 'pointer-events-none opacity-50': !userList.prev_page_url }" />
-                        </Link>
+            <!-- Пагинация -->
+            <div class="flex flex-col gap-6" v-if="userList?.total > userList?.per_page">
+            <Pagination
+                v-slot="{ page }"
+                :items-per-page="userList?.per_page"
+                :total="userList?.total"
+                :default-page="1"
+                :page="userList?.current_page"
+                class="flex justify-center"
+            >
+                <PaginationContent>
+                <PaginationItem :value="userList.current_page - 1 || 1">
+                    <PaginationPrevious
+                    :is="userList?.prev_page_url ? Link : 'span'"
+                    :href="userList?.prev_page_url ?? '#'"
+                    :class="{ 'pointer-events-none opacity-50': !userList?.prev_page_url }"
+                    />
+                </PaginationItem>
 
-                        <!-- Simple Page Numbers Logic -->
-                        <template v-for="link in userList.links" :key="link.label">
-                            <PaginationItem v-if="link.url && link.label !== '...' && !link.label.includes('&')">
-                                <Link :href="link.url">
-                                    <Button
-                                        variant="ghost"
-                                        :class="{ 'bg-muted font-bold': link.active }"
-                                        size="sm"
-                                    >
-                                        {{ link.label }}
-                                    </Button>
-                                </Link>
-                            </PaginationItem>
-                            <PaginationEllipsis v-else-if="link.label === '...'" />
-                        </template>
+                <template v-for="(link, idx) in numericLinks" :key="idx">
+                    <PaginationItem v-if="link.label === '...'" :value="idx">
+                    <PaginationEllipsis />
+                    </PaginationItem>
+                    <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
+                    <Link
+                        :href="link.url ?? '#'"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
+                        :class="{
+                        'bg-blue-600 text-white border-blue-600': link.active,
+                        'bg-zinc-900 text-zinc-200 border-zinc-800 hover:bg-zinc-800': !link.active && link.url,
+                        'pointer-events-none opacity-30': !link.url
+                        }"
+                        v-html="link.label"
+                    />
+                    </PaginationItem>
+                </template>
 
-                        <Link :href="userList.next_page_url || '#'">
-                            <PaginationNext :class="{ 'pointer-events-none opacity-50': !userList.next_page_url }" />
-                        </Link>
-                    </PaginationContent>
-                </Pagination>
+                <PaginationItem :value="userList.current_page + 1">
+                    <PaginationNext
+                    :is="userList?.next_page_url ? Link : 'span'"
+                    :href="userList?.next_page_url ?? '#'"
+                    :class="{ 'pointer-events-none opacity-50': !userList?.next_page_url }"
+                    />
+                </PaginationItem>
+                </PaginationContent>
+            </Pagination>
             </div>
 
-            <!-- Footer Action (Duplicate Create) -->
-            <div v-if="userList.data.length > 10" class="flex justify-end mt-6">
-                <Link :href="users.create()">
-                    <Button type="button" variant="secondary">
-                        <Plus class="mr-2 h-4 w-4" />
-                        Создать еще
-                    </Button>
-                </Link>
+            <div class="text-right mt-10" v-if="userList?.data.length > 10 && can('create users')">
+            <Button type="button" @click="createDialogRef?.openDialog()">
+                <Plus class="mr-2 h-4 w-4" /> Создать еще
+            </Button>
             </div>
         </div>
+        </div>
+
+        <!-- Диалоги -->
+        <UserCreateDialog ref="createDialogRef" />
+        <UserEditDialog ref="editDialogRef" />
+        <UserDeleteDialog ref="deleteDialogRef" />
     </AppLayout>
 </template>

@@ -17,8 +17,14 @@ Route::inertia('/', 'Welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
 
-    Route::resource('users', UsersController::class);
-    Route::resource('roles', RolesController::class);
+    Route::resource('users', UsersController::class)->except(['create', 'edit', 'show']);
+
+    Route::prefix('roles')->name('roles.')->group(function () {
+        Route::resource('', RolesController::class)->except(['create', 'edit', 'show']);
+
+        Route::post('attach', [RolesController::class, 'attach'])->name('attach');
+        Route::post('detach', [RolesController::class, 'detach'])->name('detach');
+    });
 });
 
 require __DIR__.'/settings.php';

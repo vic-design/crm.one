@@ -6,120 +6,90 @@ use App\Http\Requests\Users\UsersCreateRequest;
 use App\Http\Requests\Users\UsersUpdateRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class UsersController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Inertia\Response
+     * Summary of index
+     * @return Response
      */
     public function index(): Response
     {
-        // Получаем список пользователей с пагинацией и отсортируем по имени
-        $users = User::orderBy('name')
-            ->paginate(15);
+        $users = User::orderBy('name')->paginate(15);
 
-        return inertia('Users/Index', [
+        return Inertia::render('Users/Index', [
             'userList' => $users,
         ]);
     }
 
-    public function create(): Response
-    {
-        return inertia('Users/Create');
-    }
-
     /**
-     * Store a newly created resource in storage.
-     *
+     * Summary of store
      * @param UsersCreateRequest $request
-     * @return void
+     * @return RedirectResponse
      */
-    public function store(UsersCreateRequest $request)
+    public function store(UsersCreateRequest $request): RedirectResponse
     {
+        $validated = $request->validated();
 
-        $randomPassword = Str::random(12);
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-!=+';
+        $randomPassword = '';
+        $maxIndex = strlen($chars) - 1;
 
-         $validatedData = [
-            'name' => $request->validated('name'),
-            'email' => $request->validated('email'),
-            'password' => Hash::make($randomPassword),
-        ];
+        for ($i = 0; $i < 8; $i++) {
+            $randomPassword .= $chars[random_int(0, $maxIndex)];
+        }
 
-        $user = User::create($validatedData);
+        $validated['password'] = Hash::make($randomPassword);
+        User::create($validated);
 
-        return redirect('/users/' . $user->id)
-            ->withSuccess('Пользователь успешно создан! Сгенерированный пароль: ' . $randomPassword);
+        return redirect()->route('users.index')
+            ->with('success', 'Пользователь создан! Пароль: ' . $randomPassword);
     }
 
     /**
-     * Display the specified resource.
-     *
+     * Summary of update
+     * @param UsersUpdateRequest $request
      * @param User $user
-     * @return \Inertia\Response
+     * @return RedirectResponse
      */
-    public function show(User $user): Response
+    public function update(UsersUpdateRequest $request, User $user): RedirectResponse
     {
-        return Inertia::render('Users/Show', [
-            'user' => $user,
-        ]);
+        $validated = $request->validated();
+
+        if ($request->filled('password')) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return redirect()->route('users.index')
+            ->with('success', 'Пользователь обновлен!');
     }
 
     /**
-     * Edit the specified resource.
-     *
-     * @param User $user
-     * @return \Inertia\Response
-     */
-    public function edit(User $user): Response
-    {
-        return inertia('Users/Edit', [
-            'user' => $user,
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param Request $request
-     * @param User $user
-     * @return \Inertia\Response
-     */
-    public function update(UsersUpdateRequest $request, User $user): Response
-    {
-        $user->update($request->validated());
-        return $this->edit($user);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
+     * Summary of destroy
      * @param User $user
      * @return RedirectResponse
      */
     public function destroy(User $user): RedirectResponse
     {
-        // Проверка: нельзя удалять себя или админов
         if ($user->id === Auth::id()) {
-            abort(403, 'Вы не можете удалить свой собственный аккаунт');
+            abort(403, 'Нельзя удалить свой аккаунт');
         }
 
         if ($user->hasRole('admin')) {
-            abort(403, 'Нельзя удалять административные аккаунты');
+            abort(403, 'Нельзя удалять админов');
         }
 
         $user->delete();
 
         return redirect()->route('users.index')
-            ->withSuccess('Пользователь успешно удален!');
-        // return $this->index();
+            ->with('success', 'Пользователь удален!');
     }
 }
-

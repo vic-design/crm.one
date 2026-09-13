@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Http\Requests\Roles\RolesAttachRequest;
+use App\Http\Requests\Roles\RolesCreateRequest;
+use App\Http\Requests\Roles\RolesDetachRequest;
+use App\Http\Requests\Roles\RolesUpdateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
@@ -15,7 +18,9 @@ use App\Models\User;
 class RolesController extends Controller
 {
     /**
-     * Дисплей списка ролей с пагинацией Inertia v2.
+     * Summary of index
+     * @param Request $request
+     * @return InertiaResponse
      */
     public function index(Request $request): InertiaResponse
     {
@@ -32,37 +37,20 @@ class RolesController extends Controller
 
         return Inertia::render('Roles/Index', [
             'roleList'    => $roles,
-            'filters'     => [
-                'search' => $search
-            ],
+            'filters'     => ['search' => $search],
             'permissions' => Permission::select(['id', 'name', 'guard_name'])->get(),
             'guard_name'  => 'web',
         ]);
     }
 
-
     /**
-     * Дисплей формы создания роли.
+     * Summary of store
+     * @param RolesCreateRequest $request
+     * @return RedirectResponse
      */
-    public function create(Request $request): InertiaResponse
+    public function store(RolesCreateRequest $request): RedirectResponse
     {
-        return Inertia::render('Roles/Create', [
-            'permissions' => Permission::select(['id', 'name', 'guard_name'])->get(),
-            'guard_name' => $request->input('guard_name', 'web'),
-        ]);
-    }
-
-    /**
-     * Сохранение новой роли.
-     */
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name',
-            'guard_name' => 'required|string|max:255',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id', // Валидируем каждый ID
-        ]);
+        $validated = $request->validated();
 
         $role = Role::create([
             'name' => $validated['name'],
@@ -70,44 +58,22 @@ class RolesController extends Controller
         ]);
 
         if (!empty($validated['permissions'])) {
-            // Передаем массив ID напрямую — Spatie v7 это поддерживает
             $role->syncPermissions($validated['permissions']);
         }
 
-        // Правильный Inertia-редирект с флеш-сообщением
         return redirect()->route('roles.index')
             ->with('success', 'Роль успешно создана');
     }
 
     /**
-     * Дисплей формы редактирования роли.
+     * Summary of update
+     * @param Role $role
+     * @param RolesUpdateRequest $request
+     * @return RedirectResponse
      */
-    public function edit(Role $role): InertiaResponse
+    public function update(Role $role, RolesUpdateRequest $request): RedirectResponse
     {
-        return Inertia::render('Roles/Edit', [
-            // Передаем роль и массив только ID выбранных разрешений для чекбоксов
-            'role' => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'guard_name' => $role->guard_name,
-                'permissions' => $role->permissions->pluck('id'),
-            ],
-            'permissions' => Permission::select(['id', 'name', 'guard_name'])->get(),
-        ]);
-    }
-
-    /**
-     * Обновление роли.
-     */
-    public function update(Role $role, Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            // Валидация уникальности с исключением текущей роли
-            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)],
-            'guard_name' => 'required|string|max:255',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id',
-        ]);
+        $validated = $request->validated();
 
         $role->update([
             'name' => $validated['name'],
@@ -121,7 +87,9 @@ class RolesController extends Controller
     }
 
     /**
-     * Удаление роли.
+     * Summary of destroy
+     * @param Role $role
+     * @return RedirectResponse
      */
     public function destroy(Role $role): RedirectResponse
     {
@@ -142,33 +110,31 @@ class RolesController extends Controller
     }
 
     /**
-     * API / Синхронный метод: Назначение роли пользователю.
+     * Summary of attach
+     * @param RolesAttachRequest $request
+     * @return RedirectResponse
      */
-    public function attach(Request $request): RedirectResponse
+    public function attach(RolesAttachRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'role_name' => 'required|string|exists:roles,name',
-            'user_id' => 'required|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         $user = User::findOrFail($validated['user_id']);
-        $user->assignRole($validated['role_name']); // Используем метод Spatie вместо attach()
+        $user->assignRole($validated['role_name']);
 
         return redirect()->back()->with('success', 'Роль успешно назначена');
     }
 
     /**
-     * API / Синхронный метод: Отмена назначения роли.
+     * Summary of detach
+     * @param RolesDetachRequest $request
+     * @return RedirectResponse
      */
-    public function detach(Request $request): RedirectResponse
+    public function detach(RolesDetachRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'role_name' => 'required|string|exists:roles,name',
-            'user_id' => 'required|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         $user = User::findOrFail($validated['user_id']);
-        $user->removeRole($validated['role_name']); // Используем метод Spatie вместо detach()
+        $user->removeRole($validated['role_name']);
 
         return redirect()->back()->with('success', 'Роль успешно удалена у пользователя');
     }
