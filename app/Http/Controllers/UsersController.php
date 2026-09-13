@@ -6,6 +6,7 @@ use App\Http\Requests\Users\UsersCreateRequest;
 use App\Http\Requests\Users\UsersUpdateRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -17,12 +18,36 @@ class UsersController extends Controller
      * Summary of index
      * @return Response
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $users = User::orderBy('name')->paginate(15);
+        $search = $request->input('search');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        $allowedSorts = ['name', 'email'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
+
+        $users = User::query()
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy($sort, $direction)
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('Users/Index', [
             'userList' => $users,
+            'filters'  => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+            ],
         ]);
     }
 

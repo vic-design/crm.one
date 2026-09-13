@@ -19,9 +19,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('users', UsersController::class)->except(['create', 'edit', 'show']);
 
+    Route::resource('roles', RolesController::class)->except(['create', 'edit', 'show']);
     Route::prefix('roles')->name('roles.')->group(function () {
-        Route::resource('', RolesController::class)->except(['create', 'edit', 'show']);
-
         Route::post('attach', [RolesController::class, 'attach'])->name('attach');
         Route::post('detach', [RolesController::class, 'detach'])->name('detach');
     });

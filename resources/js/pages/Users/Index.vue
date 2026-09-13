@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import users from '@/routes/users';
@@ -21,13 +21,14 @@ import {
     PaginationPrevious,
 } from '@/components/ui/pagination';
 import Button from '@/components/ui/button/Button.vue';
-import { Pencil, Plus, Trash } from 'lucide-vue-next';
+import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-vue-next';
 import { usePermission } from '@/composables/usePermission.js';
 
 // Импорт диалогов
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
+import Input from '@/components/ui/input/Input.vue';
 
 interface User {
   id: number;
@@ -47,7 +48,14 @@ interface UserList {
 
 const props = defineProps<{
     userList: UserList;
+    filters?: { search?: string; sort?: string; direction?: string };
 }>();
+
+const sortColumn = ref(props.filters?.sort ?? 'name');
+const sortDirection = ref(props.filters?.direction ?? 'asc');
+const search = ref(props.filters?.search ?? '');
+
+
 
 const { can } = usePermission();
 
@@ -77,6 +85,37 @@ const getPageNumber = (index: number) => {
     const offset = (props.userList.current_page - 1) * props.userList.per_page;
     return offset + index + 1;
 };
+
+const applyFilters = () => {
+    router.get(
+        users.index(),
+        {
+            search: search.value || undefined,
+            sort: sortColumn.value,
+            direction: sortDirection.value,
+        },
+        { preserveState: true, replace: true, preserveScroll: true }
+    );
+};
+
+const toggleSort = (column: string) => {
+    if (sortColumn.value === column) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn.value = column;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
+
+let timeout: ReturnType<typeof setTimeout>;
+watch(search, (value) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        applyFilters();
+    }, 300);
+});
+
 </script>
 
 <template>
@@ -84,18 +123,49 @@ const getPageNumber = (index: number) => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="grid grid-cols-3 content-start gap-4">
         <div class="flex h-full col-span-3 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-            <div class="text-right" v-if="can('create users')">
-            <Button type="button" @click="createDialogRef?.openDialog()">
-                <Plus class="mr-2 h-4 w-4" /> Создать
-            </Button>
+            <div class="flex items-center justify-between gap-4">
+                <div class="w-full max-w-sm">
+                    <Input
+                    v-model="search"
+                    type="text"
+                    placeholder="Поиск по имени или email..."
+                    class="w-full"
+                    />
+                </div>
+
+                <div v-if="can('create users')">
+                    <Button type="button" @click="createDialogRef?.openDialog()">
+                    <Plus class="mr-2 h-4 w-4" /> Создать
+                    </Button>
+                </div>
             </div>
 
             <Table>
             <TableHeader>
                 <TableRow>
                 <TableHead class="w-[80px]">№</TableHead>
-                <TableHead>Имя</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead
+                    class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors"
+                    @click="toggleSort('name')"
+                >
+                    <div class="flex items-center gap-2">
+                        Имя
+                        <ArrowUpDown v-if="sortColumn !== 'name'" class="h-4 w-4 text-zinc-500" />
+                        <ArrowUp v-else-if="sortDirection === 'asc'" class="h-4 w-4 text-blue-500" />
+                        <ArrowDown v-else class="h-4 w-4 text-blue-500" />
+                    </div>
+                </TableHead>
+                <TableHead
+                    class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors"
+                    @click="toggleSort('email')"
+                >
+                    <div class="flex items-center gap-2">
+                        Email
+                        <ArrowUpDown v-if="sortColumn !== 'email'" class="h-4 w-4 text-zinc-500" />
+                        <ArrowUp v-else-if="sortDirection === 'asc'" class="h-4 w-4 text-blue-500" />
+                        <ArrowDown v-else class="h-4 w-4 text-blue-500" />
+                    </div>
+                </TableHead>
                 <TableHead class="text-right">Действия</TableHead>
                 </TableRow>
             </TableHeader>
