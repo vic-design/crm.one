@@ -9,6 +9,10 @@ import InputError from '@/components/InputError.vue';
 import users from '@/routes/users';
 import type { User } from '@/types';
 
+const props = defineProps<{
+    availableRoles: { id: number; name: string }[];
+}>();
+
 const isOpen = ref(false);
 const currentUserId = ref<number | null>(null);
 const currentUser = ref<User | null>(null);
@@ -18,6 +22,7 @@ const form = useForm({
     email: '',
     password: '',
     avatar: null as File | null,
+    roles: [] as string[],
 });
 
 const avatarPreview = computed(() => {
@@ -34,6 +39,7 @@ const openDialog = (user: User) => {
     form.email = user.email;
     form.password = '';
     form.avatar = null;
+    form.roles = user.roles ? user.roles.map((r: any) => r.name) : [];
     form.clearErrors();
     isOpen.value = true;
 };
@@ -102,6 +108,26 @@ defineExpose({ openDialog });
                     <Label for="password">Новый пароль</Label>
                     <Input id="password" v-model="form.password" type="password" placeholder="Оставьте пустым, чтобы не менять" />
                     <InputError :message="form.errors.password" />
+                </div>
+
+                <div class="space-y-2" v-if="availableRoles.length > 0">
+                    <Label>Роли</Label>
+                    <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
+                        <label
+                            v-for="role in availableRoles"
+                            :key="role.id"
+                            class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100"
+                        >
+                            <input
+                                type="checkbox"
+                                :value="role.name"
+                                v-model="form.roles"
+                                class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600"
+                            />
+                            <span class="capitalize">{{ role.name }}</span>
+                        </label>
+                    </div>
+                    <InputError :message="form.errors.roles" />
                 </div>
 
                 <DialogFooter class="pt-4 border-t border-zinc-800 gap-2 sm:gap-0">

@@ -8,12 +8,17 @@ import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
 import users from '@/routes/users';
 
+const props = defineProps<{
+    availableRoles: {id: number, name: string}[];
+}>();
+
 const isOpen = ref(false);
 
 const form = useForm({
     name: '',
     email: '',
     avatar: null as File | null,
+    roles: [] as string[],
 });
 
 const avatarPreview = computed(() => {
@@ -84,6 +89,26 @@ defineExpose({ openDialog });
                     <Label for="email">Email</Label>
                     <Input id="email" v-model="form.email" type="email" placeholder="example@mail.com" />
                     <InputError :message="form.errors.email" />
+                </div>
+
+                <div class="space-y-2" v-if="availableRoles.length > 0">
+                    <Label>Роли</Label>
+                    <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
+                        <label
+                            v-for="role in availableRoles"
+                            :key="role.id"
+                            class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100"
+                        >
+                            <input
+                                type="checkbox"
+                                :value="role.name"
+                                v-model="form.roles"
+                                class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600"
+                            />
+                            <span class="capitalize">{{ role.name }}</span>
+                        </label>
+                    </div>
+                    <InputError :message="form.errors.roles" />
                 </div>
 
                 <p class="text-xs text-zinc-500 mt-2">

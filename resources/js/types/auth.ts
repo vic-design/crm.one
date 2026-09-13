@@ -1,3 +1,8 @@
+export interface UserRole {
+    id: number;
+    name: string;
+}
+
 export type User = {
     id: number;
     name: string;
@@ -7,7 +12,7 @@ export type User = {
     created_at: string;
     updated_at: string;
     permissions: string[];
-    roles: string[];
+    roles: UserRole[];
     [key: string]: unknown;
 };
 

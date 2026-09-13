@@ -25,6 +25,8 @@ class UsersCreateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:4', 'max:100'],
             'email' => ['required', 'email', 'unique:users,email'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['exists:roles,name'],
         ];
     }
 }

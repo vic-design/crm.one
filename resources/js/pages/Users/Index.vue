@@ -16,6 +16,12 @@ import {
 import Button from '@/components/ui/button/Button.vue';
 import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-vue-next';
 import { usePermission } from '@/composables/usePermission.js';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+
 
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
@@ -23,6 +29,7 @@ import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
 
 const props = defineProps<{
     userList: UserListResponse;
+    availableRoles: { id: number; name: string }[];
     filters?: UserFilters;
 }>();
 
@@ -31,6 +38,7 @@ const { can } = usePermission();
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Пользователи', href: users.index() }];
 
 const search = ref(props.filters?.search ?? '');
+const selectedRoles = ref<string[]>(props.filters?.roles ?? []);
 const sortColumn = ref(props.filters?.sort ?? 'name');
 const sortDirection = ref<'asc' | 'desc'>(props.filters?.direction ?? 'asc');
 
@@ -55,6 +63,7 @@ const applyFilters = () => {
         users.index(),
         {
             search: search.value || undefined,
+            roles: selectedRoles.value.length > 0 ? selectedRoles.value : undefined,
             sort: sortColumn.value,
             direction: sortDirection.value,
         },
@@ -69,6 +78,21 @@ const toggleSort = (column: string) => {
         sortColumn.value = column;
         sortDirection.value = 'asc';
     }
+    applyFilters();
+};
+
+const toggleRole = (roleName: string) => {
+    const index = selectedRoles.value.indexOf(roleName);
+    if (index === -1) {
+        selectedRoles.value.push(roleName);
+    } else {
+        selectedRoles.value.splice(index, 1);
+    }
+    applyFilters();
+};
+
+const resetRolesFilter = () => {
+    selectedRoles.value = [];
     applyFilters();
 };
 
@@ -88,6 +112,52 @@ watch(search, () => {
                     <div class="w-full max-w-sm">
                         <Input v-model="search" type="text" placeholder="Поиск по имени или email..." class="w-full" />
                     </div>
+                    <Popover>
+                        <PopoverTrigger as-child>
+                            <Button variant="outline" class="gap-2">
+                                <Filter class="h-4 w-4" />
+                                Роли
+                                <span
+                                    v-if="selectedRoles.length > 0"
+                                    class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-xs"
+                                >
+                                    {{ selectedRoles.length }}
+                                </span>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-64 p-3 bg-zinc-950 border-zinc-800" align="start">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-zinc-300">Фильтр по ролям</span>
+                                <Button
+                                    v-if="selectedRoles.length > 0"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="h-6 px-2 text-xs"
+                                    @click="resetRolesFilter"
+                                >
+                                    <X class="h-3 w-3 mr-1" /> Сбросить
+                                </Button>
+                            </div>
+                            <div class="space-y-1 max-h-60 overflow-y-auto">
+                                <label
+                                    v-for="role in availableRoles"
+                                    :key="role.id"
+                                    class="flex items-center gap-2 p-2 rounded hover:bg-zinc-900 cursor-pointer text-sm text-zinc-300"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        :checked="selectedRoles.includes(role.name)"
+                                        @change="toggleRole(role.name)"
+                                        class="rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-blue-600"
+                                    />
+                                    <span class="capitalize">{{ role.name }}</span>
+                                </label>
+                                <div v-if="!availableRoles.length" class="text-center text-zinc-500 text-xs py-2">
+                                    Роли не найдены
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <div v-if="can('create users')">
                         <Button type="button" @click="createDialogRef?.openDialog()">
                             <Plus class="mr-2 h-4 w-4" /> Создать
@@ -123,6 +193,20 @@ watch(search, () => {
                             <TableCell class="font-medium">{{ getPageNumber(index) }}</TableCell>
                             <TableCell class="font-medium text-white">{{ user.name }}</TableCell>
                             <TableCell>{{ user.email }}</TableCell>
+                            <TableCell>
+                                <div class="flex flex-wrap gap-1">
+                                    <span
+                                        v-for="role in user.roles"
+                                        :key="role.id"
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                                    >
+                                        {{ role.name }}
+                                    </span>
+                                    <span v-if="!user.roles?.length" class="text-zinc-500 italic text-xs">
+                                        Нет ролей
+                                    </span>
+                                </div>
+                            </TableCell>
                             <TableCell class="text-right whitespace-nowrap space-x-2">
                                 <Button v-if="can('edit users')" type="button" variant="outline" size="icon" @click="openEdit(user)">
                                     <Pencil class="h-4 w-4" />
@@ -196,8 +280,8 @@ watch(search, () => {
             </div>
         </div>
 
-        <UserCreateDialog ref="createDialogRef" />
-        <UserEditDialog ref="editDialogRef" :user="currentUser" />
+        <UserCreateDialog ref="createDialogRef" :available-roles="availableRoles" />
+        <UserEditDialog ref="editDialogRef" :user="currentUser" :available-roles="availableRoles" />
         <UserDeleteDialog ref="deleteDialogRef" />
     </AppLayout>
 </template>

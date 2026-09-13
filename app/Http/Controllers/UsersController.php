@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Users\UsersCreateRequest;
 use App\Http\Requests\Users\UsersUpdateRequest;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class UsersController extends Controller
     {
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
+        $roles = $request->input('roles', []);
         $direction = $request->input('direction', 'asc');
 
         $allowedSorts = ['name', 'email'];
@@ -31,10 +33,16 @@ class UsersController extends Controller
         $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
 
         $users = User::query()
+            ->with('roles:id,name')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when(!empty($roles), function ($query) use ($roles) {
+                $query->whereHas('roles', function ($q) use ($roles) {
+                    $q->whereIn('name', $roles);
                 });
             })
             ->orderBy($sort, $direction)
@@ -47,8 +55,10 @@ class UsersController extends Controller
 
         return Inertia::render('Users/Index', [
             'userList' => $users,
+            'availableRoles' => Role::select('id', 'name')->get(),
             'filters'  => [
                 'search' => $search,
+                'roles' => $roles,
                 'sort' => $sort,
                 'direction' => $direction,
             ],
@@ -79,6 +89,10 @@ class UsersController extends Controller
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
         }
 
+        if($request->has('roles')) {
+            $user->syncRoles($validated['roles']);
+        }
+
         return redirect()->route('users.index')
             ->with('success', 'Пользователь создан! Пароль: ' . $randomPassword);
     }
@@ -104,6 +118,10 @@ class UsersController extends Controller
         if($request->hasFile('avatar')) {
             $user->clearMediaCollection('avatars');
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
+        }
+
+        if($request->has('roles')) {
+            $user->syncRoles($validated['roles']);
         }
 
         return redirect()->route('users.index')
