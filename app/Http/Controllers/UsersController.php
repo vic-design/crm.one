@@ -34,12 +34,16 @@ class UsersController extends Controller
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%");
                 });
             })
             ->orderBy($sort, $direction)
             ->paginate(15)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function ($user) {
+                $user->avatar_url = $user->avatar_url;
+                return $user;
+            });
 
         return Inertia::render('Users/Index', [
             'userList' => $users,
@@ -69,7 +73,11 @@ class UsersController extends Controller
         }
 
         $validated['password'] = Hash::make($randomPassword);
-        User::create($validated);
+        $user = User::create($validated);
+
+        if($request->hasFile('avatar')) {
+            $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'Пользователь создан! Пароль: ' . $randomPassword);
@@ -92,6 +100,11 @@ class UsersController extends Controller
         }
 
         $user->update($validated);
+
+        if($request->hasFile('avatar')) {
+            $user->clearMediaCollection('avatars');
+            $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'Пользователь обновлен!');

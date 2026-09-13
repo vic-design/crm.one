@@ -11,14 +11,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\MediaLibrary\HasMedia;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, SoftDeletes, HasRoles;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, SoftDeletes, HasRoles, InteractsWithMedia;
 
     /**
      * Get the attributes that should be cast.
@@ -32,6 +34,26 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Setup media
+     * @return void
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatars')
+            ->singleFile()
+            ->withResponsiveImages();
+    }
+
+    /**
+     * Summary of getAvatarUrlAttribute
+     * @return mixed|null
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->hasMedia('avatars') ? $this->getFirstMediaUrl('avatars') : null;
     }
 
 }

@@ -38,8 +38,10 @@ const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
 const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
 const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
 
+const currentUser = ref<User | null>(null);
 const openEdit = (user: User) => {
-    editDialogRef.value?.openDialog({ id: user.id, name: user.name, email: user.email });
+    currentUser.value = user;
+    editDialogRef.value?.openDialog(user);
 };
 
 const numericLinks = computed(() => props.userList.links.slice(1, -1));
@@ -130,7 +132,7 @@ watch(search, () => {
                                 </Button>
                             </TableCell>
                         </TableRow>
-                        <TableRow v-if="!userList?.data.length">
+                        <TableRow v-if="!userList?.data?.length">
                             <TableCell colspan="4" class="h-24 text-center text-zinc-500">Пользователи не найдены</TableCell>
                         </TableRow>
                     </TableBody>
@@ -186,7 +188,7 @@ watch(search, () => {
                     </Pagination>
                 </div>
 
-                <div class="text-right mt-10" v-if="userList?.data.length > 10 && can('create users')">
+                <div class="text-right mt-10" v-if="(userList?.data?.length ?? 0) > 10 && can('create users')">
                     <Button type="button" @click="createDialogRef?.openDialog()">
                         <Plus class="mr-2 h-4 w-4" /> Создать
                     </Button>
@@ -195,7 +197,7 @@ watch(search, () => {
         </div>
 
         <UserCreateDialog ref="createDialogRef" />
-        <UserEditDialog ref="editDialogRef" />
+        <UserEditDialog ref="editDialogRef" :user="currentUser" />
         <UserDeleteDialog ref="deleteDialogRef" />
     </AppLayout>
 </template>
