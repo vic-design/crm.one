@@ -12,7 +12,7 @@ class RolesDetachRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()->can('edit roles');
     }
 
     /**
@@ -23,8 +23,8 @@ class RolesDetachRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_name' => 'required|string|exists:roles,name',
-            'user_id' => 'required|exists:users,id',
+            'role_name' => ['required', 'string', 'exists:roles,name'],
+            'user_id' => ['required', 'exists:users,id'],
         ];
     }
 }

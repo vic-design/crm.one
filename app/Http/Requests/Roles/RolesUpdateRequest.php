@@ -13,7 +13,7 @@ class RolesUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()->can('edit roles');
     }
 
     /**
@@ -24,9 +24,9 @@ class RolesUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($this->id)],
-            'guard_name' => 'required|string|max:255',
-            'permissions' => 'nullable|array',
+            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($this->route('role'))],
+            'guard_name' => ['required', 'string', 'max:255'],
+            'permissions' => ['nullable', 'array'],
             'permissions.*' => 'exists:permissions,id',
         ];
     }

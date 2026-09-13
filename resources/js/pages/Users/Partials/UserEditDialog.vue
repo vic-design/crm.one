@@ -7,12 +7,7 @@ import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
 import users from '@/routes/users';
-
-interface UserEditPayload {
-    id: number;
-    name: string;
-    email: string;
-}
+import type { User } from '@/types';
 
 const isOpen = ref(false);
 const currentUserId = ref<number | null>(null);
@@ -23,11 +18,11 @@ const form = useForm({
     password: '',
 });
 
-const openDialog = (user: UserEditPayload) => {
+const openDialog = (user: Pick<User, 'id' | 'name' | 'email'>) => {
     currentUserId.value = user.id;
     form.name = user.name;
     form.email = user.email;
-    form.password = ''; // Не подгружаем пароль по соображениям безопасности
+    form.password = '';
     form.clearErrors();
     isOpen.value = true;
 };

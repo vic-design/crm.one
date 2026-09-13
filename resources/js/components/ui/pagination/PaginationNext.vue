@@ -27,7 +27,7 @@ const forwarded = useForwardProps(delegatedProps)
     style="cursor: pointer;"
   >
     <slot>
-      <span class="hidden sm:block">Next</span>
+      <span class="hidden sm:block"></span>
       <ChevronRightIcon />
     </slot>
   </PaginationNext>

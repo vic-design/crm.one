@@ -1,5 +1,11 @@
 import type { User } from './auth';
 
+export interface UserFilters {
+    search?: string;
+    sort?: string;
+    direction?: 'asc' | 'desc';
+}
+
 export interface UserListResponse {
     data: User[];
     links: { url: string | null; label: string; active: boolean }[];
