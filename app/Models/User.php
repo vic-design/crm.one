@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Models\Traits\HasTags;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -19,8 +21,13 @@ use Spatie\MediaLibrary\HasMedia;
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements HasMedia
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, SoftDeletes, HasRoles, InteractsWithMedia;
+    use HasFactory,
+        Notifiable,
+        TwoFactorAuthenticatable,
+        SoftDeletes,
+        HasRoles,
+        InteractsWithMedia,
+        HasTags;
 
     /**
      * Get the attributes that should be cast.

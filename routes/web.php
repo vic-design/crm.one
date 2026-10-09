@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RolesController;
+use App\Http\Controllers\TagsController;
 use App\Http\Controllers\UsersController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -24,6 +25,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('attach', [RolesController::class, 'attach'])->name('attach');
         Route::post('detach', [RolesController::class, 'detach'])->name('detach');
     });
+
+    Route::resource('tags', TagsController::class)->except(['create', 'edit', 'show']);
+    Route::get('/api/tags', [TagsController::class, 'all'])->name('tags.all');
 });
 
 require __DIR__.'/settings.php';

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, User, UserListResponse, UserFilters } from '@/types';
 import users from '@/routes/users';
-
 import Input from '@/components/ui/input/Input.vue';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -14,15 +13,14 @@ import {
     PaginationNext, PaginationPrevious,
 } from '@/components/ui/pagination';
 import Button from '@/components/ui/button/Button.vue';
-import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-vue-next';
+import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown, Filter, X } from 'lucide-vue-next';
 import { usePermission } from '@/composables/usePermission.js';
+import { useTable } from '@/composables/useTable';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-
-
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
@@ -34,51 +32,27 @@ const props = defineProps<{
 }>();
 
 const { can } = usePermission();
-
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Пользователи', href: users.index() }];
 
-const search = ref(props.filters?.search ?? '');
+const {
+    filters,
+    sortColumn,
+    sortDirection,
+    toggleSort,
+    resetFilters,
+} = useTable<UserFilters>(users.index.url(), props.filters);
+
 const selectedRoles = ref<string[]>(props.filters?.roles ?? []);
-const sortColumn = ref(props.filters?.sort ?? 'name');
-const sortDirection = ref<'asc' | 'desc'>(props.filters?.direction ?? 'asc');
 
-const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
-const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
-const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
+// Есть ли хоть один активный фильтр
+const hasActiveFilters = computed(() => {
+    return !!filters.value.search || selectedRoles.value.length > 0;
+});
 
-const currentUser = ref<User | null>(null);
-const openEdit = (user: User) => {
-    currentUser.value = user;
-    editDialogRef.value?.openDialog(user);
-};
-
-const numericLinks = computed(() => props.userList.links.slice(1, -1));
-
-const getPageNumber = (index: number) => {
-    return (props.userList.current_page - 1) * props.userList.per_page + index + 1;
-};
-
-const applyFilters = () => {
-    router.get(
-        users.index(),
-        {
-            search: search.value || undefined,
-            roles: selectedRoles.value.length > 0 ? selectedRoles.value : undefined,
-            sort: sortColumn.value,
-            direction: sortDirection.value,
-        },
-        { preserveState: true, replace: true, preserveScroll: true }
-    );
-};
-
-const toggleSort = (column: string) => {
-    if (sortColumn.value === column) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn.value = column;
-        sortDirection.value = 'asc';
-    }
-    applyFilters();
+// Сброс ВСЕХ фильтров (поиск + роли)
+const resetAllFilters = () => {
+    selectedRoles.value = [];
+    resetFilters();
 };
 
 const toggleRole = (roleName: string) => {
@@ -88,19 +62,30 @@ const toggleRole = (roleName: string) => {
     } else {
         selectedRoles.value.splice(index, 1);
     }
-    applyFilters();
+    filters.value.roles = selectedRoles.value.length > 0 ? selectedRoles.value : undefined;
 };
 
 const resetRolesFilter = () => {
     selectedRoles.value = [];
-    applyFilters();
+    filters.value.roles = undefined;
 };
 
-let timeout: ReturnType<typeof setTimeout>;
-watch(search, () => {
-    clearTimeout(timeout);
-    timeout = setTimeout(applyFilters, 300);
-});
+// Диалоги
+const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
+const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
+const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
+const currentUser = ref<User | null>(null);
+
+const openEdit = (user: User) => {
+    currentUser.value = user;
+    editDialogRef.value?.openDialog(user);
+};
+
+// Пагинация
+const numericLinks = computed(() => props.userList.links.slice(1, -1));
+const getPageNumber = (index: number) => {
+    return (props.userList.current_page - 1) * props.userList.per_page + index + 1;
+};
 </script>
 
 <template>
@@ -108,10 +93,17 @@ watch(search, () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="grid grid-cols-3 content-start gap-4">
             <div class="flex h-full col-span-3 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+                <!-- Панель фильтров и действий -->
                 <div class="flex items-center justify-between gap-4">
                     <div class="w-full max-w-sm">
-                        <Input v-model="search" type="text" placeholder="Поиск по имени или email..." class="w-full" />
+                        <Input
+                            v-model="filters.search"
+                            type="text"
+                            placeholder="Поиск по имени или email..."
+                            class="w-full"
+                        />
                     </div>
+
                     <Popover>
                         <PopoverTrigger as-child>
                             <Button variant="outline" class="gap-2">
@@ -158,6 +150,18 @@ watch(search, () => {
                             </div>
                         </PopoverContent>
                     </Popover>
+
+                    <Button
+                        v-if="hasActiveFilters"
+                        variant="outline"
+                        size="sm"
+                        class="gap-2 text-zinc-400 hover:text-zinc-100"
+                        @click="resetAllFilters"
+                    >
+                        <X class="h-4 w-4" />
+                        Сбросить
+                    </Button>
+
                     <div v-if="can('create users')">
                         <Button type="button" @click="createDialogRef?.openDialog()">
                             <Plus class="mr-2 h-4 w-4" /> Создать
@@ -165,11 +169,15 @@ watch(search, () => {
                     </div>
                 </div>
 
+                <!-- Таблица -->
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead class="w-[80px]">№</TableHead>
-                            <TableHead class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors" @click="toggleSort('name')">
+                            <TableHead
+                                class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors"
+                                @click="toggleSort('name')"
+                            >
                                 <div class="flex items-center gap-2">
                                     Имя
                                     <ArrowUpDown v-if="sortColumn !== 'name'" class="h-4 w-4 text-zinc-500" />
@@ -177,7 +185,10 @@ watch(search, () => {
                                     <ArrowDown v-else class="h-4 w-4 text-blue-500" />
                                 </div>
                             </TableHead>
-                            <TableHead class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors" @click="toggleSort('email')">
+                            <TableHead
+                                class="cursor-pointer select-none hover:bg-zinc-800/50 transition-colors"
+                                @click="toggleSort('email')"
+                            >
                                 <div class="flex items-center gap-2">
                                     Email
                                     <ArrowUpDown v-if="sortColumn !== 'email'" class="h-4 w-4 text-zinc-500" />
@@ -208,22 +219,47 @@ watch(search, () => {
                                 </div>
                             </TableCell>
                             <TableCell class="text-right whitespace-nowrap space-x-2">
-                                <Button v-if="can('edit users')" type="button" variant="outline" size="icon" @click="openEdit(user)">
+                                <Button
+                                    v-if="can('edit users')"
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    @click="openEdit(user)"
+                                >
                                     <Pencil class="h-4 w-4" />
                                 </Button>
-                                <Button v-if="can('delete users')" type="button" variant="destructive" size="icon" @click="deleteDialogRef?.openDialog(user.id, user.name)">
+                                <Button
+                                    v-if="can('delete users')"
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    @click="deleteDialogRef?.openDialog(user.id, user.name)"
+                                >
                                     <Trash class="h-4 w-4" />
                                 </Button>
                             </TableCell>
                         </TableRow>
                         <TableRow v-if="!userList?.data?.length">
-                            <TableCell colspan="4" class="h-24 text-center text-zinc-500">Пользователи не найдены</TableCell>
+                            <TableCell colspan="4" class="h-24 text-center text-zinc-500">
+                                Пользователи не найдены
+                            </TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
 
-                <div class="flex flex-col gap-6" v-if="userList?.total > userList?.per_page">
-                    <Pagination v-slot="{ page }" :items-per-page="userList?.per_page" :total="userList?.total" :default-page="1" :page="userList?.current_page" class="flex justify-center">
+                <!-- Пагинация -->
+                <div
+                    class="flex flex-col gap-6"
+                    v-if="userList?.total > userList?.per_page"
+                >
+                    <Pagination
+                        v-slot="{ page }"
+                        :items-per-page="userList?.per_page"
+                        :total="userList?.total"
+                        :default-page="1"
+                        :page="userList?.current_page"
+                        class="flex justify-center"
+                    >
                         <PaginationContent>
                             <PaginationItem :value="userList.current_page - 1 || 1">
                                 <Link
@@ -237,12 +273,15 @@ watch(search, () => {
                                 <PaginationPrevious v-else class="pointer-events-none opacity-50" />
                             </PaginationItem>
 
-                            <!-- Числовые страницы (без изменений) -->
                             <template v-for="(link, idx) in numericLinks" :key="idx">
                                 <PaginationItem v-if="link.label === '...'" :value="idx">
                                     <PaginationEllipsis />
                                 </PaginationItem>
-                                <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
+                                <PaginationItem
+                                    v-else
+                                    :value="Number(link.label)"
+                                    :is-active="link.active"
+                                >
                                     <Link
                                         :href="link.url ?? '#'"
                                         class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
@@ -256,7 +295,6 @@ watch(search, () => {
                                 </PaginationItem>
                             </template>
 
-                            <!-- Кнопка "Вперед" -->
                             <PaginationItem :value="userList.current_page + 1">
                                 <Link
                                     v-if="userList?.next_page_url"
@@ -272,7 +310,10 @@ watch(search, () => {
                     </Pagination>
                 </div>
 
-                <div class="text-right mt-10" v-if="(userList?.data?.length ?? 0) > 10 && can('create users')">
+                <div
+                    class="text-right mt-10"
+                    v-if="(userList?.data?.length ?? 0) > 10 && can('create users')"
+                >
                     <Button type="button" @click="createDialogRef?.openDialog()">
                         <Plus class="mr-2 h-4 w-4" /> Создать
                     </Button>

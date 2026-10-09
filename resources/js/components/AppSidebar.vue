@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, User, UserCog } from 'lucide-vue-next';
+import { LayoutGrid, Tag, User, UserCog } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -17,6 +17,7 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 import users from '@/routes/users';
 import roles from '@/routes/roles';
+import tags from '@/routes/tags';
 
 const mainNavItems: NavItem[] = [
     {
@@ -33,6 +34,11 @@ const mainNavItems: NavItem[] = [
         title: 'Пользователи',
         href: users.index(),
         icon: User,
+    },
+    {
+        title: 'Тэги',
+        href: tags.index(),
+        icon: Tag,
     },
 ];
 
