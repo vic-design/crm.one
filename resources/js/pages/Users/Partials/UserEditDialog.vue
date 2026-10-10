@@ -1,45 +1,42 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import type { User } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
+import TagSelector from '@/components/TagSelector.vue';
 import users from '@/routes/users';
-import type { User } from '@/types';
 
 const props = defineProps<{
+    user: User | null;
     availableRoles: { id: number; name: string }[];
 }>();
 
 const isOpen = ref(false);
 const currentUserId = ref<number | null>(null);
-const currentUser = ref<User | null>(null);
 
 const form = useForm({
     name: '',
     email: '',
-    password: '',
     avatar: null as File | null,
     roles: [] as string[],
+    tags: [] as number[],
+    password: '',
 });
 
-const avatarPreview = computed(() => {
-    if (form.avatar) {
-        return URL.createObjectURL(form.avatar);
-    }
-    return currentUser.value?.avatar_url ?? null;
-});
+const avatarPreview = ref<string | null>(null);
 
 const openDialog = (user: User) => {
     currentUserId.value = user.id;
-    currentUser.value = user;
     form.name = user.name;
     form.email = user.email;
+    form.roles = user.roles.map(r => r.name);
+    form.tags = (user as any).tags?.map((t: any) => t.id) || [];
     form.password = '';
-    form.avatar = null;
-    form.roles = user.roles ? user.roles.map((r: any) => r.name) : [];
+    avatarPreview.value = user.avatar_url || null;
     form.clearErrors();
     isOpen.value = true;
 };
@@ -48,12 +45,14 @@ const handleFileChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files && target.files[0]) {
         form.avatar = target.files[0];
+        avatarPreview.value = URL.createObjectURL(target.files[0]);
     }
 };
 
 const submit = () => {
     if (!currentUserId.value) return;
-    form.put(users.update(currentUserId.value).url, {
+
+    form.put(users.update.url({ user: currentUserId.value }), {
         forceFormData: true,
         onSuccess: () => {
             isOpen.value = false;
@@ -74,20 +73,11 @@ defineExpose({ openDialog });
                 <div class="space-y-2">
                     <Label>Аватар</Label>
                     <div class="flex items-center gap-4">
-                        <img
-                            v-if="avatarPreview"
-                            :src="avatarPreview"
-                            class="w-16 h-16 rounded-full object-cover border border-zinc-700"
-                        />
+                        <img v-if="avatarPreview" :src="avatarPreview" class="w-16 h-16 rounded-full object-cover border border-zinc-700" />
                         <div v-else class="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
                             <span class="text-xs">Нет фото</span>
                         </div>
-                        <input
-                            type="file"
-                            @change="handleFileChange"
-                            accept="image/*"
-                            class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700"
-                        />
+                        <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700" />
                     </div>
                     <InputError :message="form.errors.avatar" />
                 </div>
@@ -105,36 +95,31 @@ defineExpose({ openDialog });
                 </div>
 
                 <div class="space-y-2">
-                    <Label for="password">Новый пароль</Label>
-                    <Input id="password" v-model="form.password" type="password" placeholder="Оставьте пустым, чтобы не менять" />
+                    <Label for="password">Новый пароль (оставьте пустым, чтобы не менять)</Label>
+                    <Input id="password" v-model="form.password" type="password" />
                     <InputError :message="form.errors.password" />
                 </div>
 
                 <div class="space-y-2" v-if="availableRoles.length > 0">
                     <Label>Роли</Label>
                     <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
-                        <label
-                            v-for="role in availableRoles"
-                            :key="role.id"
-                            class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100"
-                        >
-                            <input
-                                type="checkbox"
-                                :value="role.name"
-                                v-model="form.roles"
-                                class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600"
-                            />
+                        <label v-for="role in availableRoles" :key="role.id" class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100">
+                            <input type="checkbox" :value="role.name" v-model="form.roles" class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600" />
                             <span class="capitalize">{{ role.name }}</span>
                         </label>
                     </div>
                     <InputError :message="form.errors.roles" />
                 </div>
 
+                <div class="space-y-2">
+                    <Label>Теги</Label>
+                    <TagSelector v-model="form.tags" />
+                    <InputError :message="form.errors.tags" />
+                </div>
+
                 <DialogFooter class="pt-4 border-t border-zinc-800 gap-2 sm:gap-0">
                     <Button type="button" variant="outline" @click="isOpen = false">Отмена</Button>
-                    <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Сохранение...' : 'Сохранить' }}
-                    </Button>
+                    <Button type="submit" :disabled="form.processing">{{ form.processing ? 'Сохранение...' : 'Сохранить' }}</Button>
                 </DialogFooter>
             </form>
         </DialogContent>

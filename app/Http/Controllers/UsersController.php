@@ -33,7 +33,7 @@ class UsersController extends Controller
         $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
 
         $users = User::query()
-            ->with('roles:id,name')
+            ->with(['roles:id,name', 'tags:id,name,color'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -93,6 +93,10 @@ class UsersController extends Controller
             $user->syncRoles($validated['roles']);
         }
 
+        if($request->has('tags')) {
+            $user->syncTags($validated['tags']);
+        }
+
         return redirect()->route('users.index')
             ->with('success', 'Пользователь создан! Пароль: ' . $randomPassword);
     }
@@ -123,6 +127,11 @@ class UsersController extends Controller
         if($request->has('roles')) {
             $user->syncRoles($validated['roles']);
         }
+
+        if($request->has('tags')) {
+            $user->syncTags($validated['tags']);
+        }
+
 
         return redirect()->route('users.index')
             ->with('success', 'Пользователь обновлен!');

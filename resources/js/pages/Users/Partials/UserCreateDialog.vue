@@ -6,10 +6,11 @@ import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
+import TagSelector from '@/components/TagSelector.vue';
 import users from '@/routes/users';
 
 const props = defineProps<{
-    availableRoles: {id: number, name: string}[];
+    availableRoles: { id: number; name: string }[];
 }>();
 
 const isOpen = ref(false);
@@ -19,6 +20,7 @@ const form = useForm({
     email: '',
     avatar: null as File | null,
     roles: [] as string[],
+    tags: [] as number[],
 });
 
 const avatarPreview = computed(() => {
@@ -61,20 +63,11 @@ defineExpose({ openDialog });
                 <div class="space-y-2">
                     <Label>Аватар</Label>
                     <div class="flex items-center gap-4">
-                        <img
-                            v-if="avatarPreview"
-                            :src="avatarPreview"
-                            class="w-16 h-16 rounded-full object-cover border border-zinc-700"
-                        />
+                        <img v-if="avatarPreview" :src="avatarPreview" class="w-16 h-16 rounded-full object-cover border border-zinc-700" />
                         <div v-else class="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
                             <span class="text-xs">Нет фото</span>
                         </div>
-                        <input
-                            type="file"
-                            @change="handleFileChange"
-                            accept="image/*"
-                            class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700"
-                        />
+                        <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700" />
                     </div>
                     <InputError :message="form.errors.avatar" />
                 </div>
@@ -94,32 +87,25 @@ defineExpose({ openDialog });
                 <div class="space-y-2" v-if="availableRoles.length > 0">
                     <Label>Роли</Label>
                     <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
-                        <label
-                            v-for="role in availableRoles"
-                            :key="role.id"
-                            class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100"
-                        >
-                            <input
-                                type="checkbox"
-                                :value="role.name"
-                                v-model="form.roles"
-                                class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600"
-                            />
+                        <label v-for="role in availableRoles" :key="role.id" class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100">
+                            <input type="checkbox" :value="role.name" v-model="form.roles" class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600" />
                             <span class="capitalize">{{ role.name }}</span>
                         </label>
                     </div>
                     <InputError :message="form.errors.roles" />
                 </div>
 
-                <p class="text-xs text-zinc-500 mt-2">
-                    Пароль будет сгенерирован автоматически и показан в уведомлении.
-                </p>
+                <div class="space-y-2">
+                    <Label>Теги</Label>
+                    <TagSelector v-model="form.tags" />
+                    <InputError :message="form.errors.tags" />
+                </div>
+
+                <p class="text-xs text-zinc-500 mt-2">Пароль будет сгенерирован автоматически и показан в уведомлении.</p>
 
                 <DialogFooter class="pt-4 border-t border-zinc-800 gap-2 sm:gap-0">
                     <Button type="button" variant="outline" @click="isOpen = false">Отмена</Button>
-                    <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Создание...' : 'Создать' }}
-                    </Button>
+                    <Button type="submit" :disabled="form.processing">{{ form.processing ? 'Создание...' : 'Создать' }}</Button>
                 </DialogFooter>
             </form>
         </DialogContent>

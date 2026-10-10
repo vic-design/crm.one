@@ -27,6 +27,8 @@ class UsersCreateRequest extends FormRequest
             'email' => ['required', 'email', 'unique:users,email'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['exists:roles,name'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', 'exists:tags,id'],
         ];
     }
 }

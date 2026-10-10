@@ -136,6 +136,6 @@ class RolesController extends Controller
         $user = User::findOrFail($validated['user_id']);
         $user->removeRole($validated['role_name']);
 
-        return redirect()->back()->with('success', 'Роль успешно удалена у пользователя');
+        return redirect()->back()->with('success', 'Роль успешно отозвана');
     }
 }
