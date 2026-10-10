@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Users\UsersCreateRequest;
 use App\Http\Requests\Users\UsersUpdateRequest;
 use App\Models\Role;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class UsersController extends Controller
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $roles = $request->input('roles', []);
+        $tags = $request->input('tags', []);
         $direction = $request->input('direction', 'asc');
 
         $allowedSorts = ['name', 'email'];
@@ -45,6 +47,11 @@ class UsersController extends Controller
                     $q->whereIn('name', $roles);
                 });
             })
+            ->when(!empty($tags), function ($query) use ($tags) {
+                $query->whereHas('tags', function ($q) use ($tags) {
+                    $q->whereIn('tags.id', $tags);
+                });
+            })
             ->orderBy($sort, $direction)
             ->paginate(15)
             ->withQueryString()
@@ -56,6 +63,7 @@ class UsersController extends Controller
         return Inertia::render('Users/Index', [
             'userList' => $users,
             'availableRoles' => Role::select('id', 'name')->get(),
+            'availableTags' => Tag::select('id', 'name', 'color')->get(),
             'filters'  => [
                 'search' => $search,
                 'roles' => $roles,

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { BreadcrumbItem, User, UserListResponse, UserFilters } from '@/types';
+import type { BreadcrumbItem, User, UserListResponse, UserFilters, Tag } from '@/types';
 import users from '@/routes/users';
 import Input from '@/components/ui/input/Input.vue';
 import {
@@ -24,10 +24,12 @@ import {
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
+import TagFilter from '@/components/TagFilter.vue';
 
 const props = defineProps<{
     userList: UserListResponse;
     availableRoles: { id: number; name: string }[];
+    availableTags: Tag[];
     filters?: UserFilters;
 }>();
 
@@ -43,6 +45,7 @@ const {
 } = useTable<UserFilters>(users.index.url(), props.filters);
 
 const selectedRoles = ref<string[]>(props.filters?.roles ?? []);
+const selectedTags = ref<number[]>(props.filters?.tags ?? []);
 
 // Есть ли хоть один активный фильтр
 const hasActiveFilters = computed(() => {
@@ -52,6 +55,7 @@ const hasActiveFilters = computed(() => {
 // Сброс ВСЕХ фильтров (поиск + роли)
 const resetAllFilters = () => {
     selectedRoles.value = [];
+    selectedTags.value = [];
     resetFilters();
 };
 
@@ -65,10 +69,26 @@ const toggleRole = (roleName: string) => {
     filters.value.roles = selectedRoles.value.length > 0 ? selectedRoles.value : undefined;
 };
 
+const toggleTag = (tagId: number) => {
+    const index = selectedTags.value.indexOf(tagId);
+    if (index === -1) {
+        selectedTags.value.push(tagId);
+    } else {
+        selectedTags.value.splice(index, 1);
+    }
+    filters.value.tags = selectedTags.value.length > 0 ? selectedTags.value : undefined;
+};
+
 const resetRolesFilter = () => {
     selectedRoles.value = [];
     filters.value.roles = undefined;
 };
+
+const resetTagsFilter = () => {
+    selectedTags.value = [];
+    filters.value.tags = undefined;
+};
+
 
 // Диалоги
 const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
@@ -104,6 +124,7 @@ const getPageNumber = (index: number) => {
                         />
                     </div>
 
+                    <!-- Roles filter -->
                     <Popover>
                         <PopoverTrigger as-child>
                             <Button variant="outline" class="gap-2">
@@ -151,6 +172,12 @@ const getPageNumber = (index: number) => {
                         </PopoverContent>
                     </Popover>
 
+                    <TagFilter
+                        v-model="selectedTags"
+                        :available-tags="availableTags"
+                        label="Теги"
+                    />
+
                     <Button
                         v-if="hasActiveFilters"
                         variant="outline"
@@ -196,6 +223,7 @@ const getPageNumber = (index: number) => {
                                     <ArrowDown v-else class="h-4 w-4 text-blue-500" />
                                 </div>
                             </TableHead>
+                            <TableHead class="">Роли</TableHead>
                             <TableHead class="text-right">Действия</TableHead>
                         </TableRow>
                     </TableHeader>

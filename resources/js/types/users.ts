@@ -3,6 +3,7 @@ import type { User } from './auth';
 export interface UserFilters {
     search?: string;
     roles?: string[];
+    tags?: number[];
     sort?: string;
     direction?: 'asc' | 'desc';
 }
