@@ -35,7 +35,6 @@ class TagsController extends Controller
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
             })
-            // ->withCount('users')
             ->orderBy($sort, $direction)
             ->paginate(15)
             ->withQueryString();
@@ -104,5 +103,28 @@ class TagsController extends Controller
     public function all(): JsonResponse
     {
         return response()->json(Tag::select(['id', 'name', 'slug'])->get());
+    }
+
+    /**
+     * Summary of show
+     * @param Tag $tag
+     * @return \Inertia\Response
+     */
+    public function show(Tag $tag): Response
+    {
+        $tag->load([
+            'users' => function ($query) {
+                $query->select('users.id', 'users.name', 'users.email');
+            },
+            'users.media',
+        ]);
+
+        $tag->users->each(function ($user) {
+            $user->avatar_url = $user->avatar_url;
+        });
+
+        return Inertia::render('Tags/Show', [
+            'tag' => $tag
+        ]);
     }
 }

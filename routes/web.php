@@ -18,7 +18,7 @@ Route::inertia('/', 'Welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
 
-    Route::resource('users', UsersController::class)->except(['create', 'edit', 'show']);
+    Route::resource('users', UsersController::class)->except(['create', 'edit']);
 
     Route::resource('roles', RolesController::class)->except(['create', 'edit', 'show']);
     Route::prefix('roles')->name('roles.')->group(function () {
@@ -26,8 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('detach', [RolesController::class, 'detach'])->name('detach');
     });
 
-    Route::resource('tags', TagsController::class)->except(['create', 'edit', 'show']);
-    Route::get('/api/tags', [TagsController::class, 'all'])->name('tags.all');
+    Route::resource('tags', TagsController::class)->except(['create', 'edit']);
 });
 
 require __DIR__.'/settings.php';

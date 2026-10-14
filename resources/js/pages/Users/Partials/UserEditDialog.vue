@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
-import type { User } from '@/types';
+import { ref, onMounted } from 'vue';
+import { useForm, router } from '@inertiajs/vue3';
+import type { User, Role } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -9,14 +9,16 @@ import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
 import TagSelector from '@/components/TagSelector.vue';
 import users from '@/routes/users';
+import axios from 'axios';
 
 const props = defineProps<{
     user: User | null;
-    availableRoles: { id: number; name: string }[];
+    // availableRoles: { id: number; name: string }[];
 }>();
 
 const isOpen = ref(false);
 const currentUserId = ref<number | null>(null);
+const availableRoles = ref<Pick<Role, 'id' | 'name'>[]>([]);
 
 const form = useForm({
     name: '',
@@ -29,14 +31,19 @@ const form = useForm({
 
 const avatarPreview = ref<string | null>(null);
 
-const openDialog = (user: User) => {
+const openDialog = async (user: User) => {
     currentUserId.value = user.id;
+
+    if (availableRoles.value.length === 0) {
+        const response = await axios.get('/api/roles');
+        availableRoles.value = response.data;
+    }
+
     form.name = user.name;
     form.email = user.email;
     form.roles = user.roles.map(r => r.name);
-    form.tags = (user as any).tags?.map((t: any) => t.id) || [];
+    form.tags = user.tags?.map(t => t.id) || [];
     form.password = '';
-    avatarPreview.value = user.avatar_url || null;
     form.clearErrors();
     isOpen.value = true;
 };

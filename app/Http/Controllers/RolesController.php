@@ -14,6 +14,7 @@ use Inertia\Response as InertiaResponse;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class RolesController extends Controller
 {
@@ -137,5 +138,14 @@ class RolesController extends Controller
         $user->removeRole($validated['role_name']);
 
         return redirect()->back()->with('success', 'Роль успешно отозвана');
+    }
+
+    /**
+     * Summary of all
+     * @return JsonResponse
+     */
+    public function all(): JsonResponse
+    {
+        return response()->json(Role::select(['id', 'name'])->get());
     }
 }

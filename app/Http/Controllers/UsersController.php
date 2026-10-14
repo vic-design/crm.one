@@ -165,4 +165,24 @@ class UsersController extends Controller
         return redirect()->route('users.index')
             ->with('success', 'Пользователь удален!');
     }
+
+    /**
+     * Summary of show
+     * @param User $user
+     * @return \Inertia\Response
+     */
+    public function show(User $user): Response
+    {
+        $user->load([
+            'roles:id,name',
+            'tags:id,name,color',
+            'media',
+        ]);
+
+        $user->avatar_url = $user->avatar_url;
+
+        return Inertia::render('Users/Show', [
+            'user' => $user,
+        ]);
+    }
 }

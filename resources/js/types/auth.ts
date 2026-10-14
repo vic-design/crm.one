@@ -1,7 +1,5 @@
-export interface UserRole {
-    id: number;
-    name: string;
-}
+import type { Role } from './roles';
+import type { Tag } from './tags';
 
 export type User = {
     id: number;
@@ -12,7 +10,8 @@ export type User = {
     created_at: string;
     updated_at: string;
     permissions: string[];
-    roles: UserRole[];
+    roles: Pick<Role, 'id' | 'name'>[];
+    tags: Tag[];
     [key: string]: unknown;
 };
 

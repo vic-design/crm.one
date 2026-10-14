@@ -92,7 +92,11 @@ const getPageNumber = (index: number) => {
                     <TableBody>
                         <TableRow v-for="(tag, index) in tagList?.data" :key="tag.id">
                             <TableCell class="font-medium">{{ getPageNumber(index) }}</TableCell>
-                            <TableCell class="font-medium text-white">{{ tag.name }}</TableCell>
+                            <TableCell class="font-medium text-white">
+                                <Link :href="tags.show.url({ tag: tag.id })" class="hover:text-blue-400 transition-colors">
+                                    {{ tag.name }}
+                                </Link>
+                            </TableCell>
                             <TableCell>
                                 <div
                                     class="w-8 h-8 rounded border border-zinc-700"
