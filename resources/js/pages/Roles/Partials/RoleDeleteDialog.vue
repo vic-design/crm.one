@@ -69,7 +69,7 @@ defineExpose({ openDialog });
                 {{ page.props.flash.error }}
             </div>
 
-            <DialogFooter class="gap-2 sm:gap-0 mt-4">
+            <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">
                 <DialogClose as-child>
                     <Button variant="outline" type="button">
                         Отмена

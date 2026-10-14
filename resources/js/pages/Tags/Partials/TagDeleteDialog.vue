@@ -37,7 +37,7 @@ defineExpose({ openDialog });
                     Вы уверены, что хотите удалить тег <strong class="text-white">{{ tagName }}</strong>? Это действие необратимо.
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter class="pt-4 border-t border-zinc-800 gap-2 sm:gap-0">
+            <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">
                 <Button type="button" variant="outline" @click="isOpen = false">Отмена</Button>
                 <Button type="button" variant="destructive" @click="confirmDelete">
                     Удалить

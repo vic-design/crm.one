@@ -53,12 +53,12 @@ defineExpose({ openDialog });
         <div v-if="page.props.flash?.error" class="p-3 bg-destructive/10 text-destructive text-sm rounded-md border border-destructive/20 font-medium">
             {{ page.props.flash.error }}
         </div>
-        <DialogFooter class="gap-2 sm:gap-0 mt-4">
+        <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">
             <DialogClose as-child>
-            <Button variant="outline" type="button">Отмена</Button>
+                <Button variant="outline" type="button">Отмена</Button>
             </DialogClose>
             <Button type="button" variant="destructive" :disabled="form.processing" @click="confirmDelete">
-            {{ form.processing ? 'Удаление...' : 'Удалить' }}
+                {{ form.processing ? 'Удаление...' : 'Удалить' }}
             </Button>
         </DialogFooter>
         </DialogContent>

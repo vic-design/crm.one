@@ -60,7 +60,7 @@ defineExpose({ openDialog });
                     <InputError :message="form.errors.color" />
                 </div>
 
-                <DialogFooter class="pt-4 border-t border-zinc-800 gap-2 sm:gap-0">
+                <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">
                     <Button type="button" variant="outline" @click="isOpen = false">Отмена</Button>
                     <Button type="submit" :disabled="form.processing">
                         {{ form.processing ? 'Создание...' : 'Создать' }}
