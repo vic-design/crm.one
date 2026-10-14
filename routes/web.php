@@ -27,6 +27,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::resource('tags', TagsController::class)->except(['create', 'edit']);
+
+    Route::prefix('api')->group(function() {
+        Route::get('/tags', [TagsController::class, 'all'])->name('tags.all');
+        Route::get('/roles', [RolesController::class, 'all'])->name('roles.all');
+    });
 });
 
 require __DIR__.'/settings.php';

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { User } from '@/types';
 import users from '@/routes/users';
 import Button from '@/components/ui/button/Button.vue';
 import FloatingBackButton from '@/components/FloatingBackButton.vue';
+import UserEditDialog from './Partials/UserEditDialog.vue'; // ← Обязательно импортируйте диалог
 import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -16,12 +18,18 @@ const breadcrumbs = [
     { title: props.user.name, href: users.show.url({ user: props.user.id }) }
 ];
 
+const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
+
 const goBack = () => {
     if (window.history.length > 1) {
         window.history.back();
     } else {
         router.visit(users.index.url());
     }
+};
+
+const openEdit = () => {
+    editDialogRef.value?.openDialog(props.user);
 };
 
 const formatDate = (dateString: string) => {
@@ -75,12 +83,10 @@ const formatDate = (dateString: string) => {
                     </div>
 
                     <!-- Кнопка редактирования -->
-                    <Link :href="users.edit.url({ user: user.id })">
-                        <Button variant="outline" class="gap-2">
-                            <Pencil class="h-4 w-4" />
-                            Редактировать
-                        </Button>
-                    </Link>
+                    <Button variant="outline" class="gap-2" @click="openEdit">
+                        <Pencil class="h-4 w-4" />
+                        Редактировать
+                    </Button>
                 </div>
             </div>
 
@@ -161,6 +167,8 @@ const formatDate = (dateString: string) => {
                 </dl>
             </div>
         </div>
+
+        <UserEditDialog ref="editDialogRef" :user="user" />
 
         <!-- Плавающая кнопка назад -->
         <FloatingBackButton :fallback-url="users.index.url()" />
