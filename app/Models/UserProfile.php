@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UserProfile extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = ['user_id', 'bio'];
 

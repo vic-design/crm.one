@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import type { User, Role, Contact } from '@/types';
-import { CONTACT_TYPES, getContactTypeInfo, createEmptyContact } from '@/types/contacts';
+import { CONTACT_TYPES, createEmptyContact } from '@/types/contacts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -49,13 +49,12 @@ const openDialog = async (user: User) => {
     form.contacts = user.profile?.contacts?.length
         ? user.profile.contacts.map(c => ({
             type: c.type,
-            description: c.description || '',
+            description: c.description ?? '',
             value: c.value,
         }))
         : [createEmptyContact()];
 
     avatarPreview.value = user.avatar_url || null;
-
     form.clearErrors();
     isOpen.value = true;
 };
@@ -79,11 +78,11 @@ const handleFileChange = (event: Event) => {
 const submit = () => {
     if (!currentUserId.value) return;
 
-    form.put(route(users.update.url({ user: currentUserId.value }), currentUserId.value), { // или users.update.url({ user: currentUserId.value })
+    form.put(users.update.url({ user: currentUserId.value }), {
         forceFormData: true,
         onSuccess: () => {
             isOpen.value = false;
-            router.reload(); // Обновляем страницу профиля после сохранения
+            router.reload();
         },
     });
 };
@@ -98,6 +97,7 @@ defineExpose({ openDialog });
                 <DialogTitle>Редактирование пользователя</DialogTitle>
             </DialogHeader>
             <form @submit.prevent="submit" class="space-y-4 py-4">
+                <!-- Основное -->
                 <div class="space-y-4">
                     <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Основное</h3>
                     <div class="space-y-2">
@@ -131,24 +131,7 @@ defineExpose({ openDialog });
                     </div>
                 </div>
 
-                <div class="space-y-2" v-if="availableRoles.length > 0">
-                    <Label>Роли</Label>
-                    <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
-                        <label v-for="role in availableRoles" :key="role.id" class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100">
-                            <input type="checkbox" :value="role.name" v-model="form.roles" class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600" />
-                            <span class="capitalize">{{ role.name }}</span>
-                        </label>
-                    </div>
-                    <InputError :message="form.errors.roles" />
-                </div>
-
-                <div class="space-y-2">
-                    <Label>Теги</Label>
-                    <TagSelector v-model="form.tags" />
-                    <InputError :message="form.errors.tags" />
-                </div>
-
-                <!-- Секция: Контакты -->
+                <!-- Контакты -->
                 <div class="space-y-4 pt-4 border-t border-zinc-800">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Контакты</h3>
@@ -160,7 +143,6 @@ defineExpose({ openDialog });
                     <div class="space-y-3">
                         <div v-for="(contact, index) in form.contacts" :key="index" class="space-y-2">
                             <div class="flex gap-2 items-start">
-                                <!-- Тип контакта: используем CONTACT_TYPES -->
                                 <select
                                     v-model="contact.type"
                                     class="w-1/3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-700"
@@ -169,14 +151,11 @@ defineExpose({ openDialog });
                                         {{ type.label }}
                                     </option>
                                 </select>
-
-                                <!-- Значение: используем getContactTypeInfo для placeholder -->
                                 <Input
                                     v-model="contact.value"
-                                    :placeholder="getContactTypeInfo(contact.type).placeholder"
+                                    :placeholder="CONTACT_TYPES.find(t => t.value === contact.type)?.placeholder || 'Значение'"
                                     class="flex-1"
                                 />
-
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -187,25 +166,42 @@ defineExpose({ openDialog });
                                     <Trash2 class="h-4 w-4" />
                                 </Button>
                             </div>
-
-                            <!-- Описание -->
                             <div class="ml-[33.33%]">
                                 <Input
                                     v-model="contact.description"
-                                    :placeholder="getContactTypeInfo(contact.type).needsDescription ? 'Обязательно: например, LinkedIn, рабочий факс...' : 'Описание (необязательно)'"
+                                    :placeholder="CONTACT_TYPES.find(t => t.value === contact.type)?.needsDescription ? 'Обязательно: например, LinkedIn...' : 'Описание (необязательно)'"
                                     class="text-xs"
                                     :class="{
-                                        'border-yellow-600 focus:ring-yellow-600': getContactTypeInfo(contact.type).needsDescription && !contact.description
+                                        'border-yellow-600 focus:ring-yellow-600': CONTACT_TYPES.find(t => t.value === contact.type)?.needsDescription && !contact.description
                                     }"
                                 />
                                 <InputError :message="form.errors[`contacts.${index}.description`]" />
                             </div>
                         </div>
-                        <InputError :message="form.errors['contacts']" />
                     </div>
                 </div>
 
-                <!-- Секция: Био -->
+                <!-- Роли и теги -->
+                <div class="space-y-4 pt-4 border-t border-zinc-800">
+                    <div class="space-y-2" v-if="availableRoles.length > 0">
+                        <Label>Роли</Label>
+                        <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border border-zinc-800 rounded-md bg-zinc-900/50">
+                            <label v-for="role in availableRoles" :key="role.id" class="flex items-center space-x-2 text-sm cursor-pointer text-zinc-300 hover:text-zinc-100">
+                                <input type="checkbox" :value="role.name" v-model="form.roles" class="rounded bg-zinc-900 border-zinc-800 text-blue-600 focus:ring-blue-600" />
+                                <span class="capitalize">{{ role.name }}</span>
+                            </label>
+                        </div>
+                        <InputError :message="form.errors.roles" />
+                    </div>
+
+                    <div class="space-y-2">
+                        <Label>Теги</Label>
+                        <TagSelector v-model="form.tags" />
+                        <InputError :message="form.errors.tags" />
+                    </div>
+                </div>
+
+                <!-- Био -->
                 <div class="space-y-2 pt-4 border-t border-zinc-800">
                     <Label for="bio">Комментарии / О себе</Label>
                     <textarea
@@ -218,9 +214,7 @@ defineExpose({ openDialog });
                 </div>
 
                 <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">
-                    <Button type="button" variant="outline" @click="isOpen = false">
-                        Отмена
-                    </Button>
+                    <Button type="button" variant="outline" @click="isOpen = false">Отмена</Button>
                     <Button type="submit" :disabled="form.processing">
                         {{ form.processing ? 'Сохранение...' : 'Сохранить' }}
                     </Button>

@@ -7,6 +7,8 @@ export interface UserProfile {
     user_id: number;
     bio: string | null;
     contacts: Contact[];
+    primary_phone: string | null;
+    primary_telegram: string | null;
 }
 
 export type User = {

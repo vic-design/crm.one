@@ -102,6 +102,11 @@ class UsersController extends Controller
 
         $user = User::create($userData);
 
+        if (!$user->profile || !$user->profile->exists) {
+            $user->profile()->create();
+            $user->load('profile');
+        }
+
         $user->profile()->update(['bio' => $validated['bio'] ?? null]);
         if (!empty($validated['contacts'])) {
             $user->profile->syncContacts($validated['contacts']);
@@ -143,6 +148,11 @@ class UsersController extends Controller
         }
 
         $user->update($userData);
+
+        if (!$user->profile->exists) {
+            $user->profile()->create();
+            $user->load('profile');
+        }
 
         $user->profile()->update(['bio' => $validated['bio'] ?? null]);
         if (array_key_exists('contacts', $validated)) {

@@ -45,7 +45,7 @@ export const CONTACT_TYPES: ContactTypeInfo[] = [
 export interface Contact {
     id?: number;
     type: ContactType;
-    description?: string | null;
+    description: string;
     value: string;
 }
 

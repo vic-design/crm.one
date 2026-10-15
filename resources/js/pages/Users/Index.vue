@@ -13,7 +13,7 @@ import {
     PaginationNext, PaginationPrevious,
 } from '@/components/ui/pagination';
 import Button from '@/components/ui/button/Button.vue';
-import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown, Filter, X } from 'lucide-vue-next';
+import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown, Filter, X, Phone, MessageCircle } from 'lucide-vue-next';
 import { usePermission } from '@/composables/usePermission.js';
 import { useTable } from '@/composables/useTable';
 import {
@@ -223,6 +223,7 @@ const getPageNumber = (index: number) => {
                                     <ArrowDown v-else class="h-4 w-4 text-blue-500" />
                                 </div>
                             </TableHead>
+                            <TableHead class="">Контакты</TableHead>
                             <TableHead class="">Роли</TableHead>
                             <TableHead class="text-right">Действия</TableHead>
                         </TableRow>
@@ -239,6 +240,21 @@ const getPageNumber = (index: number) => {
                                 </Link>
                             </TableCell>
                             <TableCell>{{ user.email }}</TableCell>
+                            <TableCell>
+                                <div class="space-y-1">
+                                    <div v-if="user.profile?.primary_phone" class="flex items-center gap-1 text-sm">
+                                        <Phone class="h-3 w-3 text-zinc-500" />
+                                        <span class="font-mono text-zinc-300">{{ user.profile.primary_phone }}</span>
+                                    </div>
+                                    <div v-if="user.profile?.primary_telegram" class="flex items-center gap-1 text-sm">
+                                        <MessageCircle class="h-3 w-3 text-zinc-500" />
+                                        <span class="text-blue-400">{{ user.profile.primary_telegram }}</span>
+                                    </div>
+                                    <span v-if="!user.profile?.primary_phone && !user.profile?.primary_telegram" class="text-zinc-500 italic text-xs">
+                                        Нет контактов
+                                    </span>
+                                </div>
+                            </TableCell>
                             <TableCell>
                                 <div class="flex flex-wrap gap-1">
                                     <span

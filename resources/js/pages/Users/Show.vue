@@ -10,7 +10,6 @@ import FloatingBackButton from '@/components/FloatingBackButton.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag, Briefcase } from 'lucide-vue-next';
 
-
 const props = defineProps<{
     user: User;
 }>();
@@ -49,7 +48,7 @@ const formatDate = (dateString: string) => {
     <Head :title="`Пользователь: ${user.name}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-6 space-y-6">
-            <!-- Кнопка назад вверху -->
+            <!-- Верхняя панель -->
             <div class="flex items-center gap-4">
                 <Button variant="outline" size="icon" @click="goBack">
                     <ArrowLeft class="h-4 w-4" />
@@ -57,10 +56,9 @@ const formatDate = (dateString: string) => {
                 <h1 class="text-2xl font-bold text-white">Профиль пользователя</h1>
             </div>
 
-            <!-- Карточка пользователя -->
+            <!-- Основная карточка -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-6">
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
-                    <!-- Аватар -->
                     <img
                         v-if="user.avatar_url"
                         :src="user.avatar_url"
@@ -70,7 +68,6 @@ const formatDate = (dateString: string) => {
                         {{ user.name.charAt(0).toUpperCase() }}
                     </div>
 
-                    <!-- Информация -->
                     <div class="flex-1 space-y-2">
                         <h2 class="text-2xl font-bold text-white">{{ user.name }}</h2>
                         <div class="flex items-center gap-2 text-zinc-400">
@@ -84,7 +81,6 @@ const formatDate = (dateString: string) => {
                         </div>
                     </div>
 
-                    <!-- Кнопка редактирования -->
                     <Button variant="outline" class="gap-2" @click="openEdit">
                         <Pencil class="h-4 w-4" />
                         Редактировать
@@ -94,7 +90,6 @@ const formatDate = (dateString: string) => {
 
             <!-- Роли и теги -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Роли -->
                 <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                     <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                         <Shield class="h-5 w-5" />
@@ -113,7 +108,6 @@ const formatDate = (dateString: string) => {
                     <p v-else class="text-zinc-500 text-sm">Нет ролей</p>
                 </div>
 
-                <!-- Теги -->
                 <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                     <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                         <Tag class="h-5 w-5" />
@@ -121,7 +115,7 @@ const formatDate = (dateString: string) => {
                         <span class="text-sm font-normal text-zinc-400">({{ user.tags?.length || 0 }})</span>
                     </h3>
                     <div v-if="user.tags?.length" class="flex flex-wrap gap-2">
-                        <Link
+                        <a
                             v-for="tag in user.tags"
                             :key="tag.id"
                             :href="`/tags/${tag.id}`"
@@ -133,51 +127,50 @@ const formatDate = (dateString: string) => {
                             }"
                         >
                             {{ tag.name }}
-                        </Link>
+                        </a>
                     </div>
                     <p v-else class="text-zinc-500 text-sm">Нет тегов</p>
                 </div>
             </div>
 
-            <!-- После блока с Ролями и Тегами -->
+            <!-- Профиль и контакты -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                 <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Briefcase class="h-5 w-5" />
                     Профиль и контакты
                 </h3>
-                <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        <div v-if="user.profile?.contacts?.length" class="space-y-2">
-                            <div
-                                v-for="contact in user.profile.contacts"
-                                :key="contact.id"
-                                class="flex items-center justify-between py-2 border-b border-zinc-800"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <!-- Используем утилиту -->
-                                    <span class="text-zinc-400 text-sm">
-                                        {{ getContactTypeInfo(contact.type).label }}
-                                    </span>
-                                    <span v-if="contact.description" class="text-zinc-500 text-xs">
-                                        ({{ contact.description }})
-                                    </span>
-                                </div>
-                                <dd class="text-white font-mono text-sm">{{ contact.value }}</dd>
-                            </div>
-                        </div>
 
-                    <div v-if="user.profile?.bio" class="col-span-1 md:col-span-2 pt-2">
-                        <dt class="text-zinc-400 mb-2">Комментарии</dt>
-                        <dd class="text-zinc-300 bg-zinc-950 p-3 rounded-md border border-zinc-800 whitespace-pre-wrap">
-                            {{ user.profile.bio }}
-                        </dd>
+                <div v-if="user.profile?.contacts?.length" class="space-y-2 mb-4">
+                    <div
+                        v-for="contact in user.profile.contacts"
+                        :key="contact.id"
+                        class="flex items-center justify-between py-2 border-b border-zinc-800"
+                    >
+                        <div class="flex items-center gap-2">
+                            <span class="text-zinc-400 text-sm">
+                                {{ getContactTypeInfo(contact.type).label }}
+                            </span>
+                            <span v-if="contact.description" class="text-zinc-500 text-xs">
+                                ({{ contact.description }})
+                            </span>
+                        </div>
+                        <span class="text-white font-mono text-sm">{{ contact.value }}</span>
                     </div>
-                </dl>
-                <p v-if="!user.profile?.position && !user.profile?.phone && !user.profile?.bio" class="text-zinc-500 text-sm">
+                </div>
+
+                <div v-if="user.profile?.bio" class="pt-2">
+                    <h4 class="text-zinc-400 text-sm mb-2">Комментарии</h4>
+                    <div class="text-zinc-300 bg-zinc-950 p-3 rounded-md border border-zinc-800 whitespace-pre-wrap text-sm">
+                        {{ user.profile.bio }}
+                    </div>
+                </div>
+
+                <p v-if="!user.profile?.contacts?.length && !user.profile?.bio" class="text-zinc-500 text-sm">
                     Профиль не заполнен
                 </p>
             </div>
 
-            <!-- Детальная информация -->
+            <!-- Детали -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                 <h3 class="text-lg font-semibold text-white mb-4">Детали</h3>
                 <dl class="space-y-3">
@@ -186,19 +179,11 @@ const formatDate = (dateString: string) => {
                         <dd class="text-white font-mono">{{ user.id }}</dd>
                     </div>
                     <div class="flex justify-between py-2 border-b border-zinc-800">
-                        <dt class="text-zinc-400">Email</dt>
-                        <dd class="text-white">{{ user.email }}</dd>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-800">
                         <dt class="text-zinc-400">Email подтверждён</dt>
                         <dd class="text-white">
                             <span v-if="user.email_verified_at" class="text-green-500">Да</span>
                             <span v-else class="text-red-500">Нет</span>
                         </dd>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-800">
-                        <dt class="text-zinc-400">Создан</dt>
-                        <dd class="text-white">{{ formatDate(user.created_at) }}</dd>
                     </div>
                     <div class="flex justify-between py-2">
                         <dt class="text-zinc-400">Обновлён</dt>
@@ -208,6 +193,7 @@ const formatDate = (dateString: string) => {
             </div>
         </div>
 
+        <!-- Диалог редактирования -->
         <UserEditDialog ref="editDialogRef" :user="user" />
 
         <!-- Плавающая кнопка назад -->
