@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContactType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,8 @@ class UserProfile extends Model
 
     protected $fillable = ['user_id', 'bio'];
 
+    protected $appends = ['primary_phone', 'primary_telegram'];
+
     /**
      * Summary of user
      * @return BelongsTo<User, UserProfile>
@@ -25,11 +28,13 @@ class UserProfile extends Model
 
     public function contacts(): HasMany
     {
-        return $this->hasMany(Contact::class, 'user_id', 'user_id');
+        return $this->hasMany(Contact::class);
     }
 
     /**
-     * Удобный метод для синхронизации контактов
+     * Summary of syncContacts
+     * @param array $contactsData
+     * @return void
      */
     public function syncContacts(array $contactsData): void
     {
@@ -40,8 +45,32 @@ class UserProfile extends Model
                 $this->contacts()->create([
                     'type' => $contact['type'],
                     'value' => $contact['value'],
+                    'description' => $contact['description'] ?? null,
                 ]);
             }
         }
     }
+
+    /**
+     * Summary of getPrimaryPhoneAttribute
+     */
+    public function getPrimaryPhoneAttribute(): ?string
+    {
+        return $this->contacts
+            ->where('type', ContactType::PHONE)
+            ->first()
+            ?->value;
+    }
+
+    /**
+     * Summary of getPrimaryTelegramAttribute
+     */
+    public function getPrimaryTelegramAttribute(): ?string
+    {
+        return $this->contacts
+            ->where('type', ContactType::TELEGRAM)
+            ->first()
+            ?->value;
+    }
+
 }

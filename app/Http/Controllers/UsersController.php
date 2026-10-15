@@ -35,7 +35,11 @@ class UsersController extends Controller
         $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
 
         $users = User::query()
-            ->with(['roles:id,name', 'tags:id,name,color'])
+            ->with([
+                'roles:id,name',
+                'tags:id,name,color',
+                'profile.contacts'
+            ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -82,6 +86,11 @@ class UsersController extends Controller
     {
         $validated = $request->validated();
 
+        $userData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
+
         $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-!=+';
         $randomPassword = '';
         $maxIndex = strlen($chars) - 1;
@@ -89,9 +98,14 @@ class UsersController extends Controller
         for ($i = 0; $i < 8; $i++) {
             $randomPassword .= $chars[random_int(0, $maxIndex)];
         }
+        $userData['password'] = Hash::make($randomPassword);
 
-        $validated['password'] = Hash::make($randomPassword);
-        $user = User::create($validated);
+        $user = User::create($userData);
+
+        $user->profile()->update(['bio' => $validated['bio'] ?? null]);
+        if (!empty($validated['contacts'])) {
+            $user->profile->syncContacts($validated['contacts']);
+        }
 
         if($request->hasFile('avatar')) {
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
@@ -119,13 +133,22 @@ class UsersController extends Controller
     {
         $validated = $request->validated();
 
-        if ($request->filled('password')) {
-            $validated['password'] = Hash::make($validated['password']);
-        } else {
-            unset($validated['password']);
+        $userData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
+
+        if (!empty($validated['password'])) {
+            $userData['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($validated);
+        $user->update($userData);
+
+        $user->profile()->update(['bio' => $validated['bio'] ?? null]);
+        if (array_key_exists('contacts', $validated)) {
+            $user->profile->syncContacts($validated['contacts'] ?? []);
+        }
+
 
         if($request->hasFile('avatar')) {
             $user->clearMediaCollection('avatars');
