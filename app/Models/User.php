@@ -9,6 +9,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -44,6 +45,17 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
+     * Summary of booted
+     * @return void
+     */
+    protected static function booted(): void
+    {
+        static::created(function(User $user) {
+            $user->profile()->create();
+        });
+    }
+
+    /**
      * Setup media
      * @return void
      */
@@ -61,6 +73,11 @@ class User extends Authenticatable implements HasMedia
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->hasMedia('avatars') ? $this->getFirstMediaUrl('avatars') : null;
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class)->withDefault();
     }
 
 }

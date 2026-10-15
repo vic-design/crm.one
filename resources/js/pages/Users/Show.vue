@@ -3,11 +3,13 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { User } from '@/types';
+import { getContactTypeInfo } from '@/types/contacts';
 import users from '@/routes/users';
 import Button from '@/components/ui/button/Button.vue';
 import FloatingBackButton from '@/components/FloatingBackButton.vue';
-import UserEditDialog from './Partials/UserEditDialog.vue'; // ← Обязательно импортируйте диалог
-import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag } from 'lucide-vue-next';
+import UserEditDialog from './Partials/UserEditDialog.vue';
+import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag, Briefcase } from 'lucide-vue-next';
+
 
 const props = defineProps<{
     user: User;
@@ -135,6 +137,44 @@ const formatDate = (dateString: string) => {
                     </div>
                     <p v-else class="text-zinc-500 text-sm">Нет тегов</p>
                 </div>
+            </div>
+
+            <!-- После блока с Ролями и Тегами -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Briefcase class="h-5 w-5" />
+                    Профиль и контакты
+                </h3>
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        <div v-if="user.profile?.contacts?.length" class="space-y-2">
+                            <div
+                                v-for="contact in user.profile.contacts"
+                                :key="contact.id"
+                                class="flex items-center justify-between py-2 border-b border-zinc-800"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <!-- Используем утилиту -->
+                                    <span class="text-zinc-400 text-sm">
+                                        {{ getContactTypeInfo(contact.type).label }}
+                                    </span>
+                                    <span v-if="contact.description" class="text-zinc-500 text-xs">
+                                        ({{ contact.description }})
+                                    </span>
+                                </div>
+                                <dd class="text-white font-mono text-sm">{{ contact.value }}</dd>
+                            </div>
+                        </div>
+
+                    <div v-if="user.profile?.bio" class="col-span-1 md:col-span-2 pt-2">
+                        <dt class="text-zinc-400 mb-2">Комментарии</dt>
+                        <dd class="text-zinc-300 bg-zinc-950 p-3 rounded-md border border-zinc-800 whitespace-pre-wrap">
+                            {{ user.profile.bio }}
+                        </dd>
+                    </div>
+                </dl>
+                <p v-if="!user.profile?.position && !user.profile?.phone && !user.profile?.bio" class="text-zinc-500 text-sm">
+                    Профиль не заполнен
+                </p>
             </div>
 
             <!-- Детальная информация -->

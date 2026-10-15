@@ -230,7 +230,14 @@ const getPageNumber = (index: number) => {
                     <TableBody>
                         <TableRow v-for="(user, index) in userList?.data" :key="user.id">
                             <TableCell class="font-medium">{{ getPageNumber(index) }}</TableCell>
-                            <TableCell class="font-medium text-white">{{ user.name }}</TableCell>
+                            <TableCell class="font-medium text-white">
+                                <Link
+                                    :href="`/users/${user.id}`"
+                                    class="text-white-400 hover:text-blue-300 text-sm"
+                                >
+                                    {{ user.name }}
+                                </Link>
+                            </TableCell>
                             <TableCell>{{ user.email }}</TableCell>
                             <TableCell>
                                 <div class="flex flex-wrap gap-1">

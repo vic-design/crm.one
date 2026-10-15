@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import type { User, Role } from '@/types';
+import type { User, Role, Contact } from '@/types';
+import { CONTACT_TYPES, getContactTypeInfo, createEmptyContact } from '@/types/contacts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -10,12 +11,9 @@ import InputError from '@/components/InputError.vue';
 import TagSelector from '@/components/TagSelector.vue';
 import users from '@/routes/users';
 import axios from 'axios';
+import { Plus, Trash2 } from 'lucide-vue-next';
 
-const props = defineProps<{
-    user: User | null;
-    // availableRoles: { id: number; name: string }[];
-}>();
-
+const props = defineProps<{ user: User | null }>();
 const isOpen = ref(false);
 const currentUserId = ref<number | null>(null);
 const availableRoles = ref<Pick<Role, 'id' | 'name'>[]>([]);
@@ -27,6 +25,8 @@ const form = useForm({
     roles: [] as string[],
     tags: [] as number[],
     password: '',
+    bio: '',
+    contacts: [] as Contact[],
 });
 
 const avatarPreview = ref<string | null>(null);
@@ -41,11 +41,31 @@ const openDialog = async (user: User) => {
 
     form.name = user.name;
     form.email = user.email;
+    form.password = '';
     form.roles = user.roles.map(r => r.name);
     form.tags = user.tags?.map(t => t.id) || [];
-    form.password = '';
+    form.bio = user.profile?.bio || '';
+
+    form.contacts = user.profile?.contacts?.length
+        ? user.profile.contacts.map(c => ({
+            type: c.type,
+            description: c.description || '',
+            value: c.value,
+        }))
+        : [createEmptyContact()];
+
+    avatarPreview.value = user.avatar_url || null;
+
     form.clearErrors();
     isOpen.value = true;
+};
+
+const addContact = () => {
+    form.contacts.push(createEmptyContact());
+};
+
+const removeContact = (index: number) => {
+    form.contacts.splice(index, 1);
 };
 
 const handleFileChange = (event: Event) => {
@@ -59,10 +79,11 @@ const handleFileChange = (event: Event) => {
 const submit = () => {
     if (!currentUserId.value) return;
 
-    form.put(users.update.url({ user: currentUserId.value }), {
+    form.put(route(users.update.url({ user: currentUserId.value }), currentUserId.value), { // или users.update.url({ user: currentUserId.value })
         forceFormData: true,
         onSuccess: () => {
             isOpen.value = false;
+            router.reload(); // Обновляем страницу профиля после сохранения
         },
     });
 };
@@ -72,39 +93,42 @@ defineExpose({ openDialog });
 
 <template>
     <Dialog v-model:open="isOpen">
-        <DialogContent class="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100">
+        <DialogContent class="sm:max-w-[600px] bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Редактирование пользователя</DialogTitle>
             </DialogHeader>
             <form @submit.prevent="submit" class="space-y-4 py-4">
-                <div class="space-y-2">
-                    <Label>Аватар</Label>
-                    <div class="flex items-center gap-4">
-                        <img v-if="avatarPreview" :src="avatarPreview" class="w-16 h-16 rounded-full object-cover border border-zinc-700" />
-                        <div v-else class="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
-                            <span class="text-xs">Нет фото</span>
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Основное</h3>
+                    <div class="space-y-2">
+                        <Label>Аватар</Label>
+                        <div class="flex items-center gap-4">
+                            <img v-if="avatarPreview" :src="avatarPreview" class="w-16 h-16 rounded-full object-cover border border-zinc-700" />
+                            <div v-else class="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
+                                <span class="text-xs">Нет фото</span>
+                            </div>
+                            <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700" />
                         </div>
-                        <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700" />
+                        <InputError :message="form.errors.avatar" />
                     </div>
-                    <InputError :message="form.errors.avatar" />
-                </div>
 
-                <div class="space-y-2">
-                    <Label for="name">Имя</Label>
-                    <Input id="name" v-model="form.name" type="text" />
-                    <InputError :message="form.errors.name" />
-                </div>
+                    <div class="space-y-2">
+                        <Label for="name">Имя</Label>
+                        <Input id="name" v-model="form.name" type="text" />
+                        <InputError :message="form.errors.name" />
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="email">Email</Label>
-                    <Input id="email" v-model="form.email" type="email" />
-                    <InputError :message="form.errors.email" />
-                </div>
+                    <div class="space-y-2">
+                        <Label for="email">Email</Label>
+                        <Input id="email" v-model="form.email" type="email" />
+                        <InputError :message="form.errors.email" />
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="password">Новый пароль (оставьте пустым, чтобы не менять)</Label>
-                    <Input id="password" v-model="form.password" type="password" />
-                    <InputError :message="form.errors.password" />
+                    <div class="space-y-2">
+                        <Label for="password">Новый пароль (оставьте пустым, чтобы не менять)</Label>
+                        <Input id="password" v-model="form.password" type="password" />
+                        <InputError :message="form.errors.password" />
+                    </div>
                 </div>
 
                 <div class="space-y-2" v-if="availableRoles.length > 0">
@@ -122,6 +146,75 @@ defineExpose({ openDialog });
                     <Label>Теги</Label>
                     <TagSelector v-model="form.tags" />
                     <InputError :message="form.errors.tags" />
+                </div>
+
+                <!-- Секция: Контакты -->
+                <div class="space-y-4 pt-4 border-t border-zinc-800">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Контакты</h3>
+                        <Button type="button" variant="ghost" size="sm" class="h-8 gap-1" @click="addContact">
+                            <Plus class="h-4 w-4" /> Добавить
+                        </Button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="(contact, index) in form.contacts" :key="index" class="space-y-2">
+                            <div class="flex gap-2 items-start">
+                                <!-- Тип контакта: используем CONTACT_TYPES -->
+                                <select
+                                    v-model="contact.type"
+                                    class="w-1/3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                                >
+                                    <option v-for="type in CONTACT_TYPES" :key="type.value" :value="type.value">
+                                        {{ type.label }}
+                                    </option>
+                                </select>
+
+                                <!-- Значение: используем getContactTypeInfo для placeholder -->
+                                <Input
+                                    v-model="contact.value"
+                                    :placeholder="getContactTypeInfo(contact.type).placeholder"
+                                    class="flex-1"
+                                />
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    class="text-zinc-500 hover:text-red-500"
+                                    @click="removeContact(index)"
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <!-- Описание -->
+                            <div class="ml-[33.33%]">
+                                <Input
+                                    v-model="contact.description"
+                                    :placeholder="getContactTypeInfo(contact.type).needsDescription ? 'Обязательно: например, LinkedIn, рабочий факс...' : 'Описание (необязательно)'"
+                                    class="text-xs"
+                                    :class="{
+                                        'border-yellow-600 focus:ring-yellow-600': getContactTypeInfo(contact.type).needsDescription && !contact.description
+                                    }"
+                                />
+                                <InputError :message="form.errors[`contacts.${index}.description`]" />
+                            </div>
+                        </div>
+                        <InputError :message="form.errors['contacts']" />
+                    </div>
+                </div>
+
+                <!-- Секция: Био -->
+                <div class="space-y-2 pt-4 border-t border-zinc-800">
+                    <Label for="bio">Комментарии / О себе</Label>
+                    <textarea
+                        id="bio"
+                        v-model="form.bio"
+                        rows="3"
+                        class="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                    ></textarea>
+                    <InputError :message="form.errors.bio" />
                 </div>
 
                 <DialogFooter class="pt-4 border-t border-zinc-800 justify-between sm:justify-between">

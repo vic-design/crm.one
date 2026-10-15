@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Users;
 
+use App\Enums\ContactType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UsersCreateRequest extends FormRequest
 {
@@ -29,6 +31,13 @@ class UsersCreateRequest extends FormRequest
             'roles.*' => ['exists:roles,name'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
+            'avatar' => ['nullable', 'image', 'max:2048'],
+
+            'bio' => ['nullable', 'string', 'max:2000'],
+            'contacts' => ['nullable', 'array'],
+            'contacts.*.type' => ['required', Rule::enum(ContactType::class)],
+            'contacts.*.value' => ['required', 'string', 'max:255'],
+            'contacts.*.description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
