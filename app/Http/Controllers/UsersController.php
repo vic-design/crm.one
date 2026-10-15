@@ -11,8 +11,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
 
 class UsersController extends Controller
 {
@@ -165,16 +167,45 @@ class UsersController extends Controller
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
         }
 
-        if($request->has('roles')) {
+        if (array_key_exists('roles', $validated)) {
+            $oldRoles = $user->roles->pluck('name')->sort()->values()->toArray();
+            $newRoles = collect($validated['roles'])->sort()->values()->toArray();
+
+            if ($oldRoles !== $newRoles) {
+                $currentUser = Auth::user();
+
+                Activity::create([
+                    'log_name' => 'roles',
+                    'description' => "Роли пользователя '{$user->name}' изменены",
+                    'subject_type' => User::class,
+                    'subject_id' => $user->id,
+                    'causer_type' => $currentUser ? get_class($currentUser) : null,
+                    'causer_id' => $currentUser?->id,
+                    'properties' => [
+                        'old' => $oldRoles,
+                        'new' => $newRoles,
+                    ],
+                ]);
+
+                $logMessage = sprintf(
+                    "[%s] 👤 %s | 📝 Роли пользователя '%s' | 📦 Было: [%s] → Стало: [%s]",
+                    now()->format('Y-m-d H:i:s'),
+                    $currentUser?->name ?? 'Система',
+                    $user->name,
+                    implode(', ', $oldRoles),
+                    implode(', ', $newRoles)
+                );
+
+                Log::channel('activity_file')->info($logMessage);
+            }
+
             $user->syncRoles($validated['roles']);
         }
-
         if($request->has('tags')) {
             $user->syncTags($validated['tags']);
         }
 
-
-        return redirect()->route('users.index')
+        return redirect()->back()
             ->with('success', 'Пользователь обновлен!');
     }
 

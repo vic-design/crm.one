@@ -131,13 +131,6 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/activity.log'),
             'level' => 'info',
-            // Форматируем вывод в читаемый вид: "Дата | Пользователь | Действие | Детали"
-            'formatter' => Monolog\Formatter\LineFormatter::class,
-            'formatter_with' => [
-                'format' => "[%datetime%] 👤 %context.user% | 📝 %context.action% | 📦 %context.details%\n",
-                'allow_inline_line_breaks' => true,
-            ],
-
         ],
     ],
 

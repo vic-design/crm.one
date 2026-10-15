@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContactType;
+use App\Models\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Contact extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, Loggable;
 
     protected $fillable = ['user_profile_id', 'type', 'description', 'value'];
 
@@ -64,8 +65,8 @@ class Contact extends Model
         $profileOwnerName = $this->profile?->user?->name ?? 'Неизвестно';
 
         $this->logToFile(
-            'contacts',
             'Изменение контактов',
+            $this->getCurrentUserName(),
             "Контакт у '{$profileOwnerName}'",
             $activity->description
         );

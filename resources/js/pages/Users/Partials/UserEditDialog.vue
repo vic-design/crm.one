@@ -82,7 +82,6 @@ const submit = () => {
         forceFormData: true,
         onSuccess: () => {
             isOpen.value = false;
-            router.reload();
         },
     });
 };

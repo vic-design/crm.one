@@ -40,14 +40,34 @@ class UserProfile extends Model
      */
     public function syncContacts(array $contactsData): void
     {
-        $this->contacts()->delete();
+        $existingContacts = $this->contacts->keyBy(function ($contact) {
+            return $contact->type->value . '|' . $contact->value;
+        });
 
-        foreach ($contactsData as $contact) {
-            if (!empty($contact['type']) && !empty($contact['value'])) {
+        $newContacts = collect($contactsData)
+            ->filter(fn($c) => !empty($c['type']) && !empty($c['value']))
+            ->keyBy(fn($c) => $c['type'] . '|' . $c['value']);
+
+        foreach ($existingContacts as $key => $contact) {
+            if (!$newContacts->has($key)) {
+                $contact->delete();
+            }
+        }
+
+        foreach ($newContacts as $key => $contactData) {
+            if ($existingContacts->has($key)) {
+                // Контакт существует — проверяем, нужно ли обновить description
+                $existing = $existingContacts->get($key);
+                if ($existing->description !== ($contactData['description'] ?? null)) {
+                    $existing->update([
+                        'description' => $contactData['description'] ?? null,
+                    ]);
+                }
+            } else {
                 $this->contacts()->create([
-                    'type' => $contact['type'],
-                    'value' => $contact['value'],
-                    'description' => $contact['description'] ?? null,
+                    'type' => $contactData['type'],
+                    'value' => $contactData['value'],
+                    'description' => $contactData['description'] ?? null,
                 ]);
             }
         }
@@ -95,12 +115,14 @@ class UserProfile extends Model
      */
     public function tapActivity(Activity $activity, string $eventName): void
     {
+            \Illuminate\Support\Facades\Log::info('DEBUG: UserProfile tapActivity вызван для ' . $eventName);
+
         $profileOwnerName = $this->user?->name ?? 'Неизвестно';
         $action = $this->getActionLabel($eventName);
 
         $this->logToFile(
-            'profiles',
             'Изменение профиля',
+            $this->getCurrentUserName(),
             "Профиль пользователя '{$profileOwnerName}' ({$action})",
             $eventName === 'updated' ? 'Обновлены комментарии/био' : $action
         );

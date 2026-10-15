@@ -110,12 +110,14 @@ class User extends Authenticatable implements HasMedia
      */
     public function tapActivity(Activity $activity, string $eventName): void
     {
+            \Illuminate\Support\Facades\Log::info('DEBUG: User tapActivity вызван для ' . $eventName);
+
         $email = $activity->changes()['attributes']['email'] ?? 'N/A';
         $details = "Email: {$email}";
 
         $this->logToFile(
-            'users',
             'Изменение пользователя',
+            $this->getCurrentUserName(),
             $this->getActionLabel($eventName),
             $details
         );
