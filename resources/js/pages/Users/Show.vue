@@ -3,12 +3,12 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { User } from '@/types';
-import { getContactTypeInfo } from '@/types/contacts';
 import users from '@/routes/users';
 import Button from '@/components/ui/button/Button.vue';
 import FloatingBackButton from '@/components/FloatingBackButton.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag, Briefcase } from 'lucide-vue-next';
+import { CONTACT_TYPES } from '@/types/contacts';
 
 const props = defineProps<{
     user: User;
@@ -41,6 +41,11 @@ const formatDate = (dateString: string) => {
         hour: '2-digit',
         minute: '2-digit'
     });
+};
+
+const getContactLabel = (type: string) => {
+    const found = CONTACT_TYPES.find(t => t.value === type);
+    return found ? found.label : type;
 };
 </script>
 
@@ -140,21 +145,29 @@ const formatDate = (dateString: string) => {
                     Профиль и контакты
                 </h3>
 
-                <div v-if="user.profile?.contacts?.length" class="space-y-2 mb-4">
+                <div v-if="user.profile?.contacts?.length" class="space-y-1 mb-4">
                     <div
                         v-for="contact in user.profile.contacts"
                         :key="contact.id"
-                        class="flex items-center justify-between py-2 border-b border-zinc-800"
+                        class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 py-2 border-b border-zinc-800 last:border-0"
                     >
-                        <div class="flex items-center gap-2">
-                            <span class="text-zinc-400 text-sm">
-                                {{ getContactTypeInfo(contact.type).label }}
+                        <!-- Метка с фиксированной шириной -->
+                        <span class="text-zinc-400 text-sm w-28 flex-shrink-0">
+                            {{ getContactLabel(contact.type) }}:
+                        </span>
+
+                        <!-- Значение и описание в одной строке -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-white font-mono text-sm break-all">
+                                {{ contact.value }}
                             </span>
-                            <span v-if="contact.description" class="text-zinc-500 text-xs">
-                                ({{ contact.description }})
+                            <span
+                                v-if="contact.description"
+                                class="text-zinc-500 text-xs bg-zinc-800/50 border border-zinc-700 px-2 py-0.5 rounded-md"
+                            >
+                                {{ contact.description }}
                             </span>
                         </div>
-                        <span class="text-white font-mono text-sm">{{ contact.value }}</span>
                     </div>
                 </div>
 

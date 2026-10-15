@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class UserProfile extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = ['user_id', 'bio'];
 
@@ -71,6 +73,37 @@ class UserProfile extends Model
             ->where('type', ContactType::TELEGRAM)
             ->first()
             ?->value;
+    }
+
+    /**
+     * Summary of getActivitylogOptions
+     * @return LogOptions
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['bio'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Профиль пользователя был {$eventName}")
+            ->useLogName('profiles');
+    }
+
+    /**
+     * Summary of tapActivity
+     * @param Activity $activity
+     * @param string $eventName
+     * @return void
+     */
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        $profileOwnerName = $this->user?->name ?? 'Неизвестно';
+        $action = $this->getActionLabel($eventName);
+
+        $this->logToFile(
+            'profiles',
+            'Изменение профиля',
+            "Профиль пользователя '{$profileOwnerName}' ({$action})",
+            $eventName === 'updated' ? 'Обновлены комментарии/био' : $action
+        );
     }
 
 }

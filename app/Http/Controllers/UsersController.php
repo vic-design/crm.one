@@ -210,6 +210,7 @@ class UsersController extends Controller
             'roles:id,name',
             'tags:id,name,color',
             'media',
+            'profile.contacts',
         ]);
 
         $user->avatar_url = $user->avatar_url;

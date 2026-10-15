@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Models\Traits\HasTags;
+use App\Models\Traits\Loggable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -14,6 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\MediaLibrary\HasMedia;
@@ -28,7 +32,9 @@ class User extends Authenticatable implements HasMedia
         SoftDeletes,
         HasRoles,
         InteractsWithMedia,
-        HasTags;
+        HasTags,
+        LogsActivity,
+        Loggable;
 
     /**
      * Get the attributes that should be cast.
@@ -75,9 +81,43 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMedia('avatars') ? $this->getFirstMediaUrl('avatars') : null;
     }
 
+    /**
+     * Summary of profile
+     * @return HasOne<UserProfile, User>
+     */
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class)->withDefault();
     }
 
+    /**
+     * Summary of getActivitylogOptions
+     * @return LogOptions
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email'])
+            ->setDescriptionForEvent(fn(string $eventName) => "Пользователь был {$eventName}")
+            ->useLogName('users');
+    }
+
+    /**
+     * Summary of tapActivity
+     * @param Activity $activity
+     * @param string $eventName
+     * @return void
+     */
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        $email = $activity->changes()['attributes']['email'] ?? 'N/A';
+        $details = "Email: {$email}";
+
+        $this->logToFile(
+            'users',
+            'Изменение пользователя',
+            $this->getActionLabel($eventName),
+            $details
+        );
+    }
 }
