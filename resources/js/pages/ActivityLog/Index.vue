@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { ref, watch, computed } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Button from '@/components/ui/button/Button.vue';
-import DateRangeFilter from '@/components/DateRangeFilter.vue';
-import type { DateRange } from '@/components/DateRangeFilter.vue';
 import { ArrowLeft, Clock, User, FileText, AlertCircle, Eye } from 'lucide-vue-next';
 import { formatDate, getLogTypeLabel, getLogTypeColor, getLogChanges, formatLogValue } from '@/lib/utils';
 import LogDetailDialog from './Partials/LogDetailDialog.vue';
+import LogTypeFilter from '@/components/Filters/LogTypeFilter.vue';
+import DateRangeFilter from '@/components/Filters/DateRangeFilter.vue';
+import type { DateRange } from '@/types/activity-log';
 
 const props = defineProps<{
     logs: {
@@ -20,65 +21,59 @@ const props = defineProps<{
     filters?: {
         from: string | null;
         to: string | null;
+        type: string | null;
     };
+    availableTypes: string[];
 }>();
 
-const page = usePage();
 const isDialogOpen = ref(false);
 
-// Фильтр дат — инициализируем из URL
 const dateRange = ref<DateRange>({
     from: props.filters?.from ?? '',
     to: props.filters?.to ?? '',
 });
 
-// При изменении фильтра — обновляем URL
-watch(dateRange, (newRange) => {
+const logType = ref<string>(props.filters?.type ?? '');
+
+const updateUrl = () => {
     const url = new URL(window.location.href);
 
-    if (newRange.from) {
-        url.searchParams.set('from', newRange.from);
-    } else {
-        url.searchParams.delete('from');
-    }
+    if (dateRange.value.from) url.searchParams.set('from', dateRange.value.from);
+    else url.searchParams.delete('from');
 
-    if (newRange.to) {
-        url.searchParams.set('to', newRange.to);
-    } else {
-        url.searchParams.delete('to');
-    }
+    if (dateRange.value.to) url.searchParams.set('to', dateRange.value.to);
+    else url.searchParams.delete('to');
+
+    if (logType.value) url.searchParams.set('type', logType.value);
+    else url.searchParams.delete('type');
+
+    url.searchParams.delete('page');
 
     router.get(url.pathname + url.search, {}, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
     });
-}, { deep: true });
+};
+
+watch(dateRange, updateUrl, { deep: true });
+watch(logType, updateUrl);
 
 const goBack = () => {
-    if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        router.visit('/');
-    }
+    if (window.history.length > 1) window.history.back();
+    else router.visit('/');
 };
 
 const openLogDetail = (id: number) => {
     const url = new URL(window.location.href);
     url.searchParams.set('log_id', id.toString());
-    router.get(url.pathname + url.search, {}, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
 };
 
 const closeLogDetail = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('log_id');
-    router.get(url.pathname + url.search, {}, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
 };
 
 watch(() => props.selectedLog, (newLog) => {
@@ -90,8 +85,8 @@ watch(() => props.selectedLog, (newLog) => {
     <Head title="Журнал действий" />
     <AppLayout>
         <div class="p-6 space-y-6">
-            <!-- Заголовок + фильтры -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <!-- Заголовок + фильтры (показываем фильтры только если есть типы данных) -->
+            <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <Button variant="outline" size="icon" @click="goBack">
                         <ArrowLeft class="h-4 w-4" />
@@ -99,14 +94,20 @@ watch(() => props.selectedLog, (newLog) => {
                     <h1 class="text-2xl font-bold text-white">Журнал действий</h1>
                 </div>
 
-                <!-- Фильтр дат -->
-                <DateRangeFilter
-                    v-model="dateRange"
-                    label="Период:"
-                />
+                <div v-if="availableTypes.length > 0" class="flex flex-col sm:flex-row gap-3">
+                    <LogTypeFilter
+                        v-model="logType"
+                        :options="availableTypes"
+                        label="Тип:"
+                    />
+                    <DateRangeFilter
+                        v-model="dateRange"
+                        label="Период:"
+                    />
+                </div>
             </div>
 
-            <!-- Таблица логов (без изменений) -->
+            <!-- Таблица логов -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
@@ -183,6 +184,7 @@ watch(() => props.selectedLog, (newLog) => {
                     </table>
                 </div>
 
+                <!-- Пагинация -->
                 <div v-if="logs.last_page > 1" class="px-6 py-4 border-t border-zinc-800 flex items-center justify-between">
                     <span class="text-sm text-zinc-400">
                         Страница {{ logs.current_page }} из {{ logs.last_page }}
@@ -208,6 +210,7 @@ watch(() => props.selectedLog, (newLog) => {
                 </div>
             </div>
 
+            <!-- Диалог деталей -->
             <LogDetailDialog
                 v-if="selectedLog"
                 :log="selectedLog"

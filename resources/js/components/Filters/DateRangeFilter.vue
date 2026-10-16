@@ -3,11 +3,7 @@ import { computed } from 'vue';
 import { Calendar, X } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
-
-export interface DateRange {
-    from: string;
-    to: string;
-}
+import type { DateRange } from '@/types/activity-log';
 
 const props = defineProps<{
     modelValue: DateRange;

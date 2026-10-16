@@ -17,6 +17,7 @@ class ActivityLogController extends Controller
     {
         $from = $request->input('from');
         $to = $request->input('to');
+        $type = $request->input('type');
 
         $query = Activity::with(['causer', 'subject'])->latest();
 
@@ -26,6 +27,9 @@ class ActivityLogController extends Controller
         if ($to) {
             $query->whereDate('created_at', '<=', $to);
         }
+        if ($type) {
+            $query->where('log_name', $type);
+        }
 
         $logs = $query->paginate(25)->withQueryString();
 
@@ -34,6 +38,8 @@ class ActivityLogController extends Controller
             $selectedLog = Activity::with(['causer', 'subject'])->find($request->input('log_id'));
         }
 
+        $availableTypes = Activity::distinct()->pluck('log_name')->toArray();
+
         return Inertia::render('ActivityLog/Index', [
             'logs' => $logs,
             'selectedLog' => $selectedLog,
@@ -41,6 +47,7 @@ class ActivityLogController extends Controller
                 'from' => $from,
                 'to' => $to,
             ],
+            'availableTypes' => $availableTypes,
         ]);
     }
 }
