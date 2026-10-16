@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContactType;
+use App\Models\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class UserProfile extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, Loggable;
 
     protected $fillable = ['user_id', 'bio'];
 
@@ -56,7 +57,6 @@ class UserProfile extends Model
 
         foreach ($newContacts as $key => $contactData) {
             if ($existingContacts->has($key)) {
-                // Контакт существует — проверяем, нужно ли обновить description
                 $existing = $existingContacts->get($key);
                 if ($existing->description !== ($contactData['description'] ?? null)) {
                     $existing->update([
