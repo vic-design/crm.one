@@ -7,13 +7,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Maatwebsite\Excel\Excel;
+use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Activitylog\Models\Activity;
 
 class ActivityLogController extends Controller
 {
     /**
      * Summary of index
+     * @param Request $request
      * @return \Inertia\Response
      */
     public function index(Request $request): Response
@@ -49,6 +50,7 @@ class ActivityLogController extends Controller
             'filters' => [
                 'from' => $from,
                 'to' => $to,
+                'type' => $type,
             ],
             'availableTypes' => $availableTypes,
         ]);
@@ -58,6 +60,7 @@ class ActivityLogController extends Controller
      * Summary of export
      * @param Request $request
      * @param string $format
+     * @return \Illuminate\Http\Response|\Symfony\Component\HttpFoundation\BinaryFileResponse
      */
     public function export(Request $request, string $format)
     {
@@ -89,10 +92,9 @@ class ActivityLogController extends Controller
         }
 
         if ($format === 'csv') {
-            return Excel::download(new ActivityLogExport($filters), $filename . '.csv', Excel::CSV);
+            return Excel::download(new ActivityLogExport($filters), $filename . '.csv', \Maatwebsite\Excel\Excel::CSV);
         }
 
-        // XLSX по умолчанию
         return Excel::download(new ActivityLogExport($filters), $filename . '.xlsx');
     }
 }
