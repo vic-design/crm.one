@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import { AlertTriangle } from 'lucide-vue-next';
-
-import roles from '@/routes/roles';
+import roles from '@/routes/management/roles';
 
 const isOpen = ref(false);
 const roleId = ref<number | null>(null);

@@ -4,7 +4,7 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 import { AlertTriangle } from 'lucide-vue-next';
-import users from '@/routes/users';
+import users from '@/routes/management/users';
 
 const isOpen = ref(false);
 const userId = ref<number | null>(null);

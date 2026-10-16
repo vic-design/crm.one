@@ -7,7 +7,7 @@ import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
 import InputError from '@/components/InputError.vue';
 import TagSelector from '@/components/TagSelector.vue';
-import users from '@/routes/users';
+import users from '@/routes/management/users';
 import { CONTACT_TYPES, createEmptyContact } from '@/types/contacts';
 import type { Contact } from '@/types';
 import { Plus, Trash2 } from 'lucide-vue-next';

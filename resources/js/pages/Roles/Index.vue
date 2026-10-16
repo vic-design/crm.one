@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import roles from '@/routes/roles';
+import roles from '@/routes/management/roles';
 
 // Импортируем типы из общей папки типов
 import type { BreadcrumbItem, RoleListResponse, Permission, Role } from '@/types';

@@ -156,13 +156,15 @@ class UsersController extends Controller
             $user->load('profile');
         }
 
-        $user->profile()->update(['bio' => $validated['bio'] ?? null]);
+        $user->profile->update([
+            'bio' => $validated['bio'] ?? null,
+        ]);
+
         if (array_key_exists('contacts', $validated)) {
             $user->profile->syncContacts($validated['contacts'] ?? []);
         }
 
-
-        if($request->hasFile('avatar')) {
+        if ($request->hasFile('avatar')) {
             $user->clearMediaCollection('avatars');
             $user->addMediaFromRequest('avatar')->toMediaCollection('avatars');
         }
@@ -172,12 +174,11 @@ class UsersController extends Controller
             $newRoles = collect($validated['roles'])->sort()->values()->toArray();
 
             if ($oldRoles !== $newRoles) {
-                $currentUser = \Illuminate\Support\Facades\Auth::user();
-
-                \Spatie\Activitylog\Models\Activity::create([
+                $currentUser = Auth::user();
+                Activity::create([
                     'log_name' => 'roles',
                     'description' => "Роли пользователя '{$user->name}' изменены",
-                    'subject_type' => \App\Models\User::class,
+                    'subject_type' => User::class,
                     'subject_id' => $user->id,
                     'causer_type' => $currentUser ? get_class($currentUser) : null,
                     'causer_id' => $currentUser?->id,
@@ -191,12 +192,12 @@ class UsersController extends Controller
             $user->syncRoles($validated['roles']);
         }
 
-        if($request->has('tags')) {
+        if (array_key_exists('tags', $validated)) {
             $user->syncTags($validated['tags']);
         }
 
         return redirect()->back()
-            ->with('success', 'Пользователь обновлен!');
+            ->with('success', 'Пользователь ' . $user->name . ' успешно обновлен.');
     }
 
     /**

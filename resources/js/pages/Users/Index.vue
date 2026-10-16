@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, User, UserListResponse, UserFilters, Tag } from '@/types';
-import users from '@/routes/users';
+import users from '@/routes/management/users';
 import Input from '@/components/ui/input/Input.vue';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -233,7 +233,7 @@ const getPageNumber = (index: number) => {
                             <TableCell class="font-medium">{{ getPageNumber(index) }}</TableCell>
                             <TableCell class="font-medium text-white">
                                 <Link
-                                    :href="`/users/${user.id}`"
+                                    :href="users.show.url({ user: user.id })"
                                     class="text-white-400 hover:text-blue-300 text-sm"
                                 >
                                     {{ user.name }}

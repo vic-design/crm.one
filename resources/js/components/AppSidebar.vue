@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Tag, User, UserCog } from 'lucide-vue-next';
+import { LayoutGrid, Tag, User, UserCog, FileText } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -10,38 +10,46 @@ import {
     SidebarFooter,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
-import users from '@/routes/users';
-import roles from '@/routes/roles';
+import users from '@/routes/management/users';
+import roles from '@/routes/management/roles';
 import tags from '@/routes/tags';
+import activityLog from '@/routes/management/activity-log';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Доска',
+        title: 'Дашборд',
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
-        title: 'Роли',
-        href: roles.index(),
-        icon: UserCog,
-    },
-    {
-        title: 'Пользователи',
-        href: users.index(),
-        icon: User,
-    },
-    {
-        title: 'Тэги',
+        title: 'Теги',
         href: tags.index(),
         icon: Tag,
     },
+    {
+        title: 'Управление',
+        icon: UserCog,
+        children: [
+            {
+                title: 'Пользователи',
+                href: users.index(),
+            },
+            {
+                title: 'Роли',
+                href: roles.index(),
+            },
+            {
+                title: 'Журнал изменений',
+                href: activityLog.index(),
+            }
+        ]
+    }
 ];
-
 </script>
 
 <template>

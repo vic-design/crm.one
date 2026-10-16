@@ -3,7 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { User } from '@/types';
-import users from '@/routes/users';
+import users from '@/routes/management/users';
 import Button from '@/components/ui/button/Button.vue';
 import FloatingBackButton from '@/components/FloatingBackButton.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';

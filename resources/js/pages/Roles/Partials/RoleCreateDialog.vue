@@ -4,7 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Button from '@/components/ui/button/Button.vue';
 
-import roles from '@/routes/roles';
+import roles from '@/routes/management/roles';
 import type { Permission } from '@/types';
 
 const props = defineProps<{
