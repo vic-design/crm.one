@@ -5,8 +5,6 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Models\Traits\HasTags;
-use App\Models\Traits\Loggable;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +13,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -33,8 +30,7 @@ class User extends Authenticatable implements HasMedia
         HasRoles,
         InteractsWithMedia,
         HasTags,
-        LogsActivity,
-        Loggable;
+        LogsActivity;
 
     /**
      * Get the attributes that should be cast.
@@ -100,26 +96,5 @@ class User extends Authenticatable implements HasMedia
             ->logOnly(['name', 'email'])
             ->setDescriptionForEvent(fn(string $eventName) => "Пользователь был {$eventName}")
             ->useLogName('users');
-    }
-
-    /**
-     * Summary of tapActivity
-     * @param Activity $activity
-     * @param string $eventName
-     * @return void
-     */
-    public function tapActivity(Activity $activity, string $eventName): void
-    {
-            \Illuminate\Support\Facades\Log::info('DEBUG: User tapActivity вызван для ' . $eventName);
-
-        $email = $activity->changes()['attributes']['email'] ?? 'N/A';
-        $details = "Email: {$email}";
-
-        $this->logToFile(
-            'Изменение пользователя',
-            $this->getCurrentUserName(),
-            $this->getActionLabel($eventName),
-            $details
-        );
     }
 }

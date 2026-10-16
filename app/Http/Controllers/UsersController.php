@@ -172,12 +172,12 @@ class UsersController extends Controller
             $newRoles = collect($validated['roles'])->sort()->values()->toArray();
 
             if ($oldRoles !== $newRoles) {
-                $currentUser = Auth::user();
+                $currentUser = \Illuminate\Support\Facades\Auth::user();
 
-                Activity::create([
+                \Spatie\Activitylog\Models\Activity::create([
                     'log_name' => 'roles',
                     'description' => "Роли пользователя '{$user->name}' изменены",
-                    'subject_type' => User::class,
+                    'subject_type' => \App\Models\User::class,
                     'subject_id' => $user->id,
                     'causer_type' => $currentUser ? get_class($currentUser) : null,
                     'causer_id' => $currentUser?->id,
@@ -186,21 +186,11 @@ class UsersController extends Controller
                         'new' => $newRoles,
                     ],
                 ]);
-
-                $logMessage = sprintf(
-                    "[%s] 👤 %s | 📝 Роли пользователя '%s' | 📦 Было: [%s] → Стало: [%s]",
-                    now()->format('Y-m-d H:i:s'),
-                    $currentUser?->name ?? 'Система',
-                    $user->name,
-                    implode(', ', $oldRoles),
-                    implode(', ', $newRoles)
-                );
-
-                Log::channel('activity_file')->info($logMessage);
             }
 
             $user->syncRoles($validated['roles']);
         }
+
         if($request->has('tags')) {
             $user->syncTags($validated['tags']);
         }

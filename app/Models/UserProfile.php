@@ -3,22 +3,31 @@
 namespace App\Models;
 
 use App\Enums\ContactType;
-use App\Models\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 class UserProfile extends Model
 {
-    use HasFactory, LogsActivity, Loggable;
+    use HasFactory, LogsActivity;
 
     protected $fillable = ['user_id', 'bio'];
 
     protected $appends = ['primary_phone', 'primary_telegram'];
+
+    /**
+     * Настройки логирования для Spatie
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['bio'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn(string $eventName) => "Профиль пользователя был {$eventName}");
+    }
 
     /**
      * Summary of user
@@ -29,6 +38,10 @@ class UserProfile extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Summary of contacts
+     * @return HasMany<Contact, UserProfile>
+     */
     public function contacts(): HasMany
     {
         return $this->hasMany(Contact::class);
@@ -49,12 +62,14 @@ class UserProfile extends Model
             ->filter(fn($c) => !empty($c['type']) && !empty($c['value']))
             ->keyBy(fn($c) => $c['type'] . '|' . $c['value']);
 
+        // Удаляем те, которых нет в новых
         foreach ($existingContacts as $key => $contact) {
             if (!$newContacts->has($key)) {
                 $contact->delete();
             }
         }
 
+        // Добавляем или обновляем
         foreach ($newContacts as $key => $contactData) {
             if ($existingContacts->has($key)) {
                 $existing = $existingContacts->get($key);
@@ -78,10 +93,7 @@ class UserProfile extends Model
      */
     public function getPrimaryPhoneAttribute(): ?string
     {
-        return $this->contacts
-            ->where('type', ContactType::PHONE)
-            ->first()
-            ?->value;
+        return $this->contacts->where('type', ContactType::PHONE)->first()?->value;
     }
 
     /**
@@ -89,43 +101,6 @@ class UserProfile extends Model
      */
     public function getPrimaryTelegramAttribute(): ?string
     {
-        return $this->contacts
-            ->where('type', ContactType::TELEGRAM)
-            ->first()
-            ?->value;
+        return $this->contacts->where('type', ContactType::TELEGRAM)->first()?->value;
     }
-
-    /**
-     * Summary of getActivitylogOptions
-     * @return LogOptions
-     */
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['bio'])
-            ->setDescriptionForEvent(fn(string $eventName) => "Профиль пользователя был {$eventName}")
-            ->useLogName('profiles');
-    }
-
-    /**
-     * Summary of tapActivity
-     * @param Activity $activity
-     * @param string $eventName
-     * @return void
-     */
-    public function tapActivity(Activity $activity, string $eventName): void
-    {
-            \Illuminate\Support\Facades\Log::info('DEBUG: UserProfile tapActivity вызван для ' . $eventName);
-
-        $profileOwnerName = $this->user?->name ?? 'Неизвестно';
-        $action = $this->getActionLabel($eventName);
-
-        $this->logToFile(
-            'Изменение профиля',
-            $this->getCurrentUserName(),
-            "Профиль пользователя '{$profileOwnerName}' ({$action})",
-            $eventName === 'updated' ? 'Обновлены комментарии/био' : $action
-        );
-    }
-
 }
