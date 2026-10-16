@@ -3,13 +3,16 @@ import { ref } from 'vue';
 import { Download, FileSpreadsheet, FileText, X } from 'lucide-vue-next';
 import Button from '@/components/ui/button/Button.vue';
 
-const props = defineProps<{
-    filters: {
+const props = withDefaults(defineProps<{
+    filters?: {
         from?: string | null;
         to?: string | null;
         type?: string | null;
     };
-}>();
+}>(), {
+    filters: () => ({ from: null, to: null, type: null }),
+});
+
 
 const isOpen = ref(false);
 

@@ -108,7 +108,7 @@ watch(() => props.selectedLog, (newLog) => {
                         />
                     </div>
 
-                    <ExportButton :filters="filters ?? { from: null, to: null, type: null }" />
+                    <ExportButton :filters="filters" />
                 </div>
             </div>
 
