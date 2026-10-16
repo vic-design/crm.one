@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Models\Traits\HasTags;
+use App\Models\Traits\Loggable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,7 +31,8 @@ class User extends Authenticatable implements HasMedia
         HasRoles,
         InteractsWithMedia,
         HasTags,
-        LogsActivity;
+        LogsActivity,
+        Loggable;
 
     /**
      * Get the attributes that should be cast.
@@ -94,7 +96,8 @@ class User extends Authenticatable implements HasMedia
     {
         return LogOptions::defaults()
             ->logOnly(['name', 'email'])
-            ->setDescriptionForEvent(fn(string $eventName) => "Пользователь был {$eventName}")
-            ->useLogName('users');
+            ->logOnlyDirty()
+            ->useLogName('users')
+            ->setDescriptionForEvent(fn(string $eventName) => "Пользователь был {$this->getActionLabel($eventName)}");
     }
 }

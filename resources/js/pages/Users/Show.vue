@@ -9,6 +9,7 @@ import FloatingBackButton from '@/components/FloatingBackButton.vue';
 import UserEditDialog from './Partials/UserEditDialog.vue';
 import { Pencil, ArrowLeft, Mail, Calendar, Shield, Tag, Briefcase } from 'lucide-vue-next';
 import { CONTACT_TYPES } from '@/types/contacts';
+import { formatDate } from '@/lib/utils.js';
 
 const props = defineProps<{
     user: User;
@@ -31,16 +32,6 @@ const goBack = () => {
 
 const openEdit = () => {
     editDialogRef.value?.openDialog(props.user);
-};
-
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ru-RU', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
 };
 
 const getContactLabel = (type: string) => {

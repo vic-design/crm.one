@@ -26,21 +26,23 @@ class Contact extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['type', 'value', 'description'])
-            ->logOnlyDirty()
+            ->useLogName('contacts')
             ->setDescriptionForEvent(function (string $eventName) {
                 $typeLabel = $this->type->label();
-
                 $action = match($eventName) {
                     'created' => 'добавлен',
                     'updated' => 'изменён',
                     'deleted' => 'удалён',
                     default => $eventName,
                 };
-
                 return "Контакт '{$typeLabel}' ({$this->value}) был {$action}";
             });
     }
 
+    /**
+     * Summary of profile
+     * @return BelongsTo<UserProfile, Contact>
+     */
     public function profile(): BelongsTo
     {
         return $this->belongsTo(UserProfile::class);

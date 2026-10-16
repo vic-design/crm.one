@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContactType;
+use App\Models\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class UserProfile extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, Loggable;
 
     protected $fillable = ['user_id', 'bio'];
 
@@ -26,8 +27,10 @@ class UserProfile extends Model
         return LogOptions::defaults()
             ->logOnly(['bio'])
             ->logOnlyDirty()
-            ->setDescriptionForEvent(fn(string $eventName) => "Профиль пользователя был {$eventName}");
+            ->useLogName('profiles')
+            ->setDescriptionForEvent(fn(string $eventName) => "Профиль пользователя был {$this->getActionLabel($eventName)}");
     }
+
 
     /**
      * Summary of user
