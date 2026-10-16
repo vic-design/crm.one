@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('detach', [RolesController::class, 'detach'])->name('detach');
         });
         Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+        Route::get('activity-log/export/{format}', [ActivityLogController::class, 'export'])->name('activity-log.export');
     });
 
     Route::resource('tags', TagsController::class)->except(['create', 'edit']);

@@ -6,12 +6,13 @@ import tags from '@/routes/tags';
 import { ArrowLeft } from 'lucide-vue-next';
 import { useBack } from '@/composables/useBack';
 import FloatingBackButton from '@/components/FloatingBackButton.vue';
+import users from '@/routes/management/users';
 
 const props = defineProps<{
     tag: Tag & {
         users: User[];
-        clients?: any[];  // когда создадите
-        tasks?: any[];  // когда создадите
+        clients?: any[];
+        tasks?: any[];
     };
 }>();
 
@@ -75,7 +76,7 @@ const { goBack } = useBack(tags.index.url());
                             <p class="text-sm text-zinc-400">{{ user.email }}</p>
                         </div>
                         <Link
-                            :href="`/users/${user.id}`"
+                            :href="users.show.url({ user: user.id })"
                             class="text-blue-400 hover:text-blue-300 text-sm"
                         >
                             Открыть →

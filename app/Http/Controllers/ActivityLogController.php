@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ActivityLogExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Excel;
 use Spatie\Activitylog\Models\Activity;
 
 class ActivityLogController extends Controller
@@ -49,5 +52,47 @@ class ActivityLogController extends Controller
             ],
             'availableTypes' => $availableTypes,
         ]);
+    }
+
+    /**
+     * Summary of export
+     * @param Request $request
+     * @param string $format
+     */
+    public function export(Request $request, string $format)
+    {
+        $filters = [
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+            'type' => $request->input('type'),
+        ];
+
+        $filename = 'activity-log-' . date('Y-m-d-H-i-s');
+
+        if ($format === 'pdf') {
+            $logs = Activity::with(['causer', 'subject'])->latest();
+
+            if (!empty($filters['from'])) {
+                $logs->whereDate('created_at', '>=', $filters['from']);
+            }
+            if (!empty($filters['to'])) {
+                $logs->whereDate('created_at', '<=', $filters['to']);
+            }
+            if (!empty($filters['type'])) {
+                $logs->where('log_name', $filters['type']);
+            }
+
+            $logs = $logs->get();
+
+            $pdf = Pdf::loadView('exports.activity-log-pdf', compact('logs', 'filters'));
+            return $pdf->download($filename . '.pdf');
+        }
+
+        if ($format === 'csv') {
+            return Excel::download(new ActivityLogExport($filters), $filename . '.csv', Excel::CSV);
+        }
+
+        // XLSX по умолчанию
+        return Excel::download(new ActivityLogExport($filters), $filename . '.xlsx');
     }
 }

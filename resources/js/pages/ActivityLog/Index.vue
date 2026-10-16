@@ -3,12 +3,13 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Button from '@/components/ui/button/Button.vue';
+import ExportButton from '@/components/ExportButton.vue';
 import { ArrowLeft, Clock, User, FileText, AlertCircle, Eye } from 'lucide-vue-next';
 import { formatDate, getLogTypeLabel, getLogTypeColor, getLogChanges, formatLogValue } from '@/lib/utils';
 import LogDetailDialog from './Partials/LogDetailDialog.vue';
-import LogTypeFilter from '@/components/Filters/LogTypeFilter.vue';
+import { DateRange } from '@/types/activity-log.js';
 import DateRangeFilter from '@/components/Filters/DateRangeFilter.vue';
-import type { DateRange } from '@/types/activity-log';
+import LogTypeFilter from '@/components/Filters/LogTypeFilter.vue';
 
 const props = defineProps<{
     logs: {
@@ -85,7 +86,7 @@ watch(() => props.selectedLog, (newLog) => {
     <Head title="Журнал действий" />
     <AppLayout>
         <div class="p-6 space-y-6">
-            <!-- Заголовок + фильтры (показываем фильтры только если есть типы данных) -->
+            <!-- Заголовок + фильтры + экспорт -->
             <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <Button variant="outline" size="icon" @click="goBack">
@@ -94,16 +95,20 @@ watch(() => props.selectedLog, (newLog) => {
                     <h1 class="text-2xl font-bold text-white">Журнал действий</h1>
                 </div>
 
-                <div v-if="availableTypes.length > 0" class="flex flex-col sm:flex-row gap-3">
-                    <LogTypeFilter
-                        v-model="logType"
-                        :options="availableTypes"
-                        label="Тип:"
-                    />
-                    <DateRangeFilter
-                        v-model="dateRange"
-                        label="Период:"
-                    />
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div v-if="availableTypes.length > 0" class="flex flex-col sm:flex-row gap-3">
+                        <LogTypeFilter
+                            v-model="logType"
+                            :options="availableTypes"
+                            label="Тип:"
+                        />
+                        <DateRangeFilter
+                            v-model="dateRange"
+                            label="Период:"
+                        />
+                    </div>
+
+                    <ExportButton :filters="filters ?? { from: null, to: null, type: null }" />
                 </div>
             </div>
 
