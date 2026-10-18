@@ -1,15 +1,31 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { Head, router, Link } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Button from '@/components/ui/button/Button.vue';
 import ExportButton from '@/components/ExportButton.vue';
-import { ArrowLeft, Clock, User, FileText, AlertCircle, Eye } from 'lucide-vue-next';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationEllipsis,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
+import { ArrowLeft, Eye } from 'lucide-vue-next';
 import { formatDate, getLogTypeLabel, getLogTypeColor, getLogChanges, formatLogValue } from '@/lib/utils';
 import LogDetailDialog from './Partials/LogDetailDialog.vue';
 import { DateRange } from '@/types/activity-log.js';
-import DateRangeFilter from '@/components/Filters/DateRangeFilter.vue';
 import LogTypeFilter from '@/components/Filters/LogTypeFilter.vue';
+import DateRangeFilter from '@/components/Filters/DateRangeFilter.vue';
 
 const props = defineProps<{
     logs: {
@@ -17,6 +33,10 @@ const props = defineProps<{
         links: any[];
         current_page: number;
         last_page: number;
+        per_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
     };
     selectedLog: any;
     filters?: {
@@ -80,6 +100,11 @@ const closeLogDetail = () => {
 watch(() => props.selectedLog, (newLog) => {
     isDialogOpen.value = !!newLog;
 }, { immediate: true });
+
+const numericLinks = computed(() => props.logs.links.slice(1, -1));
+
+const prevUrl = computed(() => props.logs.links.find((l: any) => l.label.includes('Previous'))?.url);
+const nextUrl = computed(() => props.logs.links.find((l: any) => l.label.includes('Next'))?.url);
 </script>
 
 <template>
@@ -112,107 +137,123 @@ watch(() => props.selectedLog, (newLog) => {
                 </div>
             </div>
 
-            <!-- Таблица логов -->
-            <div class="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-zinc-400 uppercase bg-zinc-950/50 border-b border-zinc-800">
-                            <tr>
-                                <th class="px-6 py-3 w-16"></th>
-                                <th class="px-6 py-3">Дата и время</th>
-                                <th class="px-6 py-3">Пользователь</th>
-                                <th class="px-6 py-3">Тип</th>
-                                <th class="px-6 py-3">Действие</th>
-                                <th class="px-6 py-3">Детали изменений</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-800">
-                            <tr v-for="log in logs.data" :key="log.id" class="hover:bg-zinc-800/50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <Button variant="ghost" size="icon" class="h-8 w-8" @click="openLogDetail(log.id)">
-                                        <Eye class="h-4 w-4 text-zinc-400 hover:text-white" />
-                                    </Button>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-zinc-400">
-                                    <div class="flex items-center gap-2">
-                                        <Clock class="h-4 w-4" />
-                                        {{ formatDate(log.created_at) }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-white">
-                                    <div class="flex items-center gap-2">
-                                        <User class="h-4 w-4 text-zinc-500" />
-                                        {{ log.causer?.name || 'Система' }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
-                                        :class="getLogTypeColor(log.log_name)"
-                                    >
-                                        {{ getLogTypeLabel(log.log_name) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-zinc-300 max-w-xs truncate" :title="log.description">
-                                    {{ log.description }}
-                                </td>
-                                <td class="px-6 py-4 text-xs font-mono max-w-md">
-                                    <div v-if="getLogChanges(log).length" class="space-y-1">
-                                        <template v-for="change in getLogChanges(log)" :key="change.key">
-                                            <div v-if="change.oldValue !== undefined" class="flex items-start gap-2 text-red-400">
-                                                <span class="mt-0.5 select-none">-</span>
-                                                <span class="truncate max-w-[250px]" :title="`${change.key}: ${formatLogValue(change.oldValue)}`">
-                                                    {{ change.key }}: {{ formatLogValue(change.oldValue) }}
-                                                </span>
-                                            </div>
-                                            <div v-if="change.newValue !== undefined" class="flex items-start gap-2 text-green-400">
-                                                <span class="mt-0.5 select-none">+</span>
-                                                <span class="truncate max-w-[250px]" :title="`${change.key}: ${formatLogValue(change.newValue)}`">
-                                                    {{ change.key }}: {{ formatLogValue(change.newValue) }}
-                                                </span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div v-else class="text-zinc-500 italic flex items-center gap-2">
-                                        <AlertCircle class="h-3 w-3" />
-                                        Нет детальных данных
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="logs.data.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center text-zinc-500">
-                                    <FileText class="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                    <p>Записи не найдены</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Таблица логов с использованием UI компонентов -->
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead class="w-[60px]"></TableHead>
+                        <TableHead>Дата и время</TableHead>
+                        <TableHead>Пользователь</TableHead>
+                        <TableHead>Тип</TableHead>
+                        <TableHead>Действие</TableHead>
+                        <TableHead class="text-right">Детали изменений</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <template v-if="logs.data.length > 0">
+                        <TableRow v-for="log in logs.data" :key="log.id">
+                            <TableCell>
+                                <Button variant="ghost" size="icon" class="h-8 w-8" @click="openLogDetail(log.id)">
+                                    <Eye class="h-4 w-4 text-zinc-400 hover:text-white" />
+                                </Button>
+                            </TableCell>
+                            <TableCell class="text-zinc-400">
+                                {{ formatDate(log.created_at) }}
+                            </TableCell>
+                            <TableCell class="text-white">
+                                {{ log.causer?.name || 'Система' }}
+                            </TableCell>
+                            <TableCell>
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                    :class="getLogTypeColor(log.log_name)"
+                                >
+                                    {{ getLogTypeLabel(log.log_name) }}
+                                </span>
+                            </TableCell>
+                            <TableCell class="text-zinc-300 max-w-xs truncate" :title="log.description">
+                                {{ log.description }}
+                            </TableCell>
+                            <TableCell class="text-right">
+                                <div v-if="getLogChanges(log).length" class="space-y-1">
+                                    <template v-for="change in getLogChanges(log)" :key="change.key">
+                                        <div v-if="change.oldValue !== undefined" class="flex items-start gap-2 text-red-400 text-xs justify-end">
+                                            <span class="truncate max-w-[200px] text-right">
+                                                {{ change.key }}: {{ formatLogValue(change.oldValue) }}
+                                            </span>
+                                            <span class="mt-0.5 select-none">-</span>
+                                        </div>
+                                        <div v-if="change.newValue !== undefined" class="flex items-start gap-2 text-green-400 text-xs justify-end">
+                                            <span class="truncate max-w-[200px] text-right">
+                                                {{ change.key }}: {{ formatLogValue(change.newValue) }}
+                                            </span>
+                                            <span class="mt-0.5 select-none">+</span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div v-else class="text-zinc-500 text-xs italic">
+                                    Нет данных
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </template>
+                    <TableRow v-else>
+                        <TableCell colspan="6" class="h-24 text-center text-zinc-500">
+                            Записи не найдены
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
 
-                <!-- Пагинация -->
-                <div v-if="logs.last_page > 1" class="px-6 py-4 border-t border-zinc-800 flex items-center justify-between">
-                    <span class="text-sm text-zinc-400">
-                        Страница {{ logs.current_page }} из {{ logs.last_page }}
-                    </span>
-                    <div class="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :disabled="logs.current_page === 1"
-                            @click="router.get(logs.links.find((l: any) => l.label.includes('Previous'))?.url || '')"
-                        >
-                            Назад
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :disabled="logs.current_page === logs.last_page"
-                            @click="router.get(logs.links.find((l: any) => l.label.includes('Next'))?.url || '')"
-                        >
-                            Вперед
-                        </Button>
-                    </div>
-                </div>
+            <!-- Пагинация с использованием UI компонента (исправленная) -->
+            <div v-if="logs.last_page > 1" class="flex justify-center">
+                <Pagination
+                    v-slot="{ page }"
+                    :items-per-page="logs.per_page"
+                    :total="logs.total"
+                    :default-page="1"
+                    :page="logs.current_page"
+                    class="flex justify-center"
+                >
+                    <PaginationContent>
+                        <!-- Previous -->
+                        <PaginationItem :value="logs.current_page - 1 || 1">
+                            <Link v-if="prevUrl" :href="prevUrl" preserve-state preserve-scroll>
+                                <PaginationPrevious />
+                            </Link>
+                            <PaginationPrevious v-else class="pointer-events-none opacity-50" />
+                        </PaginationItem>
+
+                        <!-- Numbers -->
+                        <template v-for="(link, idx) in numericLinks" :key="idx">
+                            <PaginationItem v-if="link.label === '...'" :value="idx">
+                                <PaginationEllipsis />
+                            </PaginationItem>
+                            <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
+                                <Link
+                                    :href="link.url || '#'"
+                                    preserve-state
+                                    preserve-scroll
+                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
+                                    :class="{
+                                        'bg-blue-600 text-white border-blue-600': link.active,
+                                        'bg-zinc-900 text-zinc-200 border-zinc-800 hover:bg-zinc-800': !link.active && link.url,
+                                        'pointer-events-none opacity-30': !link.url
+                                    }"
+                                    v-html="link.label"
+                                />
+                            </PaginationItem>
+                        </template>
+
+                        <!-- Next -->
+                        <PaginationItem :value="logs.current_page + 1">
+                            <Link v-if="nextUrl" :href="nextUrl" preserve-state preserve-scroll>
+                                <PaginationNext />
+                            </Link>
+                            <PaginationNext v-else class="pointer-events-none opacity-50" />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
             </div>
 
             <!-- Диалог деталей -->
