@@ -18,13 +18,17 @@ import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-
 import { usePermission } from '@/composables/usePermission';
 import { useTable } from '@/composables/useTable';
 
+// Компоненты фильтров
+import RoleFilter from '@/components/Filters/RoleFilter.vue';
+import TagFilter from '@/components/Filters/TagFilter.vue';
+
 // Диалоги
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
+import UserEditDialog from './Partials/UserEditDialog.vue';
 import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
 
-// Новый компонент пагинации
+// компонент пагинации
 import Pagination from '@/components/pagination/Index.vue';
-import UserEditDialog from './Partials/UserEditDialog.vue';
 
 const props = defineProps<{
     userList: UserListResponse;
@@ -51,6 +55,7 @@ const {
 const selectedRoles = ref<string[]>(props.filters?.roles ?? []);
 const selectedTags = ref<number[]>(props.filters?.tags ?? []);
 const currentPerPage = ref(props.userList.per_page || 20);
+const currentUser = ref<User | null>(null); // ← Добавлено для UserEditDialog
 
 // Синхронизация фильтров с локальным состоянием
 watch(selectedRoles, (newVal) => {
@@ -87,6 +92,7 @@ const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
 const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
 
 const openEdit = (user: User) => {
+    currentUser.value = user;
     editDialogRef.value?.openDialog(user);
 };
 
@@ -255,11 +261,10 @@ const getPageNumber = (index: number) => {
                 </TableBody>
             </Table>
 
-            <!-- Пагинация (инкапсулированный компонент) -->
+            <!-- Пагинация -->
             <Pagination
                 v-model:per-page="currentPerPage"
                 :total="userList.total"
-                :per-page="userList.per_page"
                 :current-page="userList.current_page"
                 :links="userList.links"
                 :prev-page-url="userList.prev_page_url"
@@ -269,7 +274,12 @@ const getPageNumber = (index: number) => {
 
             <!-- Диалоги -->
             <UserCreateDialog ref="createDialogRef" :available-roles="availableRoles" :available-tags="availableTags" />
-            <UserEditDialog ref="editDialogRef" :available-roles="availableRoles" :available-tags="availableTags" />
+            <UserEditDialog
+                ref="editDialogRef"
+                :user="currentUser"
+                :available-roles="availableRoles"
+                :available-tags="availableTags"
+            />
             <UserDeleteDialog ref="deleteDialogRef" />
         </div>
     </AppLayout>

@@ -6,19 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 const props = defineProps<{
-    modelValue: (string | number)[];
-    options: { id: string | number; name: string; color?: string }[];
+    modelValue: number[];
+    options: { id: number; name: string; color?: string }[];
     label?: string;
 }>();
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', value: (string | number)[]): void;
+    (e: 'update:modelValue', value: number[]): void;
 }>();
 
 const isOpen = ref(false);
 const hasValue = computed(() => props.modelValue.length > 0);
 
-const toggle = (id: string | number) => {
+const toggle = (id: number) => {
     const isSelected = props.modelValue.includes(id);
     const newValue = isSelected
         ? props.modelValue.filter(item => item !== id)
