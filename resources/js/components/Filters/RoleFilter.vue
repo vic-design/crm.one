@@ -6,23 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 const props = defineProps<{
-    modelValue: (string | number)[];
-    options: { id: string | number; name: string }[];
+    modelValue: string[]; // ← Теперь строго массив строк (имен ролей)
+    options: { id: number; name: string }[];
     label?: string;
 }>();
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', value: (string | number)[]): void;
+    (e: 'update:modelValue', value: string[]): void;
 }>();
 
 const isOpen = ref(false);
 const hasValue = computed(() => props.modelValue.length > 0);
 
-const toggle = (id: string | number) => {
-    const isSelected = props.modelValue.includes(id);
+const toggle = (name: string) => {
+    const isSelected = props.modelValue.includes(name);
     const newValue = isSelected
-        ? props.modelValue.filter(item => item !== id)
-        : [...props.modelValue, id];
+        ? props.modelValue.filter(item => item !== name)
+        : [...props.modelValue, name];
 
     emit('update:modelValue', newValue);
 };
@@ -64,13 +64,13 @@ const clear = (event: Event) => {
                         v-for="option in options"
                         :key="option.id"
                         class="flex items-center justify-between p-2 rounded-md transition-colors cursor-pointer"
-                        :class="modelValue.includes(option.id) ? 'bg-zinc-800 border border-zinc-700' : 'hover:bg-zinc-900/50 border border-transparent'"
-                        @click="toggle(option.id)"
+                        :class="modelValue.includes(option.name) ? 'bg-zinc-800 border border-zinc-700' : 'hover:bg-zinc-900/50 border border-transparent'"
+                        @click="toggle(option.name)"
                     >
-                        <span class="text-sm text-zinc-200 select-none">
+                        <span class="text-sm text-zinc-200 select-none capitalize">
                             {{ option.name }}
                         </span>
-                        <Check v-if="modelValue.includes(option.id)" class="h-4 w-4 text-blue-500" />
+                        <Check v-if="modelValue.includes(option.name)" class="h-4 w-4 text-blue-500" />
                     </div>
 
                     <div v-if="options.length === 0" class="text-sm text-zinc-500 text-center py-2">

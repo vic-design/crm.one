@@ -27,6 +27,7 @@ const props = defineProps<{
     availableRoles: { id: number; name: string }[];
     availableTags: Tag[];
     filters?: UserFilters;
+    perPageOptions?: number[];
 }>();
 
 const { can } = usePermission();
@@ -87,6 +88,18 @@ const numericLinks = computed(() => props.userList.links.slice(1, -1));
 const getPageNumber = (index: number) => {
     return (props.userList.current_page - 1) * props.userList.per_page + index + 1;
 };
+
+const currentPerPage = ref(props.filters?.per_page || 20);
+
+watch(currentPerPage, (newVal) => {
+    filters.value.per_page = newVal;
+});
+
+watch(() => props.filters?.per_page, (newVal) => {
+    if (newVal && newVal !== currentPerPage.value) {
+        currentPerPage.value = newVal;
+    }
+});
 </script>
 
 <template>
@@ -120,7 +133,6 @@ const getPageNumber = (index: number) => {
                         label="Теги"
                     />
 
-                    <!-- Кнопка сброса (появляется только при активных фильтрах) -->
                     <Button
                         v-if="hasActiveFilters"
                         variant="ghost"
@@ -133,7 +145,6 @@ const getPageNumber = (index: number) => {
                     </Button>
                 </div>
 
-                <!-- Распорка и кнопка создания -->
                 <div class="flex-1 hidden lg:block"></div>
 
                 <Button v-if="can('create users')" @click="createDialogRef?.openDialog()" class="h-9">
@@ -255,55 +266,75 @@ const getPageNumber = (index: number) => {
                 </TableBody>
             </Table>
 
-            <!-- Пагинация -->
-            <div v-if="Math.ceil(userList.total / userList.per_page) > 1" class="flex justify-center">
-                <Pagination
-                    v-slot="{ page }"
-                    :items-per-page="userList.per_page"
-                    :total="userList.total"
-                    :default-page="1"
-                    :page="userList.current_page"
-                    class="flex justify-center"
-                >
-                    <PaginationContent>
-                        <!-- Previous -->
-                        <PaginationItem :value="userList.current_page - 1 || 1">
-                            <Link v-if="userList.prev_page_url" :href="userList.prev_page_url" preserve-state preserve-scroll>
-                                <PaginationPrevious />
-                            </Link>
-                            <PaginationPrevious v-else class="pointer-events-none opacity-50" />
-                        </PaginationItem>
+            <!-- Панель пагинации и выбора количества записей -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4 mt-4">
 
-                        <!-- Numbers -->
-                        <template v-for="(link, idx) in numericLinks" :key="idx">
-                            <PaginationItem v-if="link.label === '...'" :value="idx">
-                                <PaginationEllipsis />
-                            </PaginationItem>
-                            <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
-                                <Link
-                                    :href="link.url || '#'"
-                                    preserve-state
-                                    preserve-scroll
-                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
-                                    :class="{
-                                        'bg-blue-600 text-white border-blue-600': link.active,
-                                        'bg-zinc-900 text-zinc-200 border-zinc-800 hover:bg-zinc-800': !link.active && link.url,
-                                        'pointer-events-none opacity-30': !link.url
-                                    }"
-                                    v-html="link.label"
-                                />
-                            </PaginationItem>
-                        </template>
+                <div class="flex items-center gap-2 sm:justify-start justify-center">
+                    <span class="text-sm text-zinc-400">Показывать по:</span>
+                    <select
+                        v-model.number="currentPerPage"
+                        class="h-9 w-20 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-zinc-700 hover:bg-zinc-900 transition-colors cursor-pointer"
+                    >
+                        <option
+                            v-for="option in perPageOptions || [20, 30, 50]"
+                            :key="option"
+                            :value="option"
+                        >
+                            {{ option }}
+                        </option>
+                    </select>
+                    <span class="text-sm text-zinc-500">
+                        из {{ userList.total }}
+                    </span>
+                </div>
 
-                        <!-- Next -->
-                        <PaginationItem :value="userList.current_page + 1">
-                            <Link v-if="userList.next_page_url" :href="userList.next_page_url" preserve-state preserve-scroll>
-                                <PaginationNext />
-                            </Link>
-                            <PaginationNext v-else class="pointer-events-none opacity-50" />
-                        </PaginationItem>
-                    </PaginationContent>
-                </Pagination>
+                <div v-if="Math.ceil(userList.total / userList.per_page) > 1" class="flex justify-center sm:col-start-2 sm:col-end-2">
+                    <Pagination
+                        v-slot="{ page }"
+                        :items-per-page="userList.per_page"
+                        :total="userList.total"
+                        :default-page="1"
+                        :page="userList.current_page"
+                    >
+                        <PaginationContent>
+                            <PaginationItem :value="userList.current_page - 1 || 1">
+                                <Link v-if="userList.prev_page_url" :href="userList.prev_page_url" preserve-state preserve-scroll>
+                                    <PaginationPrevious />
+                                </Link>
+                                <PaginationPrevious v-else class="pointer-events-none opacity-50" />
+                            </PaginationItem>
+
+                            <template v-for="(link, idx) in numericLinks" :key="idx">
+                                <PaginationItem v-if="link.label === '...'" :value="idx">
+                                    <PaginationEllipsis />
+                                </PaginationItem>
+                                <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
+                                    <Link
+                                        :href="link.url || '#'"
+                                        preserve-state
+                                        preserve-scroll
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
+                                        :class="{
+                                            'bg-blue-600 text-white border-blue-600': link.active,
+                                            'bg-zinc-900 text-zinc-200 border-zinc-800 hover:bg-zinc-800': !link.active && link.url,
+                                            'pointer-events-none opacity-30': !link.url
+                                        }"
+                                        v-html="link.label"
+                                    />
+                                </PaginationItem>
+                            </template>
+
+                            <PaginationItem :value="userList.current_page + 1">
+                                <Link v-if="userList.next_page_url" :href="userList.next_page_url" preserve-state preserve-scroll>
+                                    <PaginationNext />
+                                </Link>
+                                <PaginationNext v-else class="pointer-events-none opacity-50" />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+
+                <div class="hidden sm:block"></div>
             </div>
 
             <!-- Диалоги -->

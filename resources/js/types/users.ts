@@ -6,6 +6,7 @@ export interface UserFilters {
     tags?: number[];
     sort?: string;
     direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 export interface UserListResponse {
@@ -16,4 +17,5 @@ export interface UserListResponse {
     current_page: number;
     prev_page_url: string | null;
     next_page_url: string | null;
+    per_page_options?: number[];
 }

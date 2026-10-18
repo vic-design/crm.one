@@ -11,7 +11,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -29,6 +28,13 @@ class UsersController extends Controller
         $roles = $request->input('roles', []);
         $tags = $request->input('tags', []);
         $direction = $request->input('direction', 'asc');
+
+        $perPage = (int) $request->input('per_page', config('pagination.default_per_page'));
+        $allowedPerPage = config('pagination.per_page_options');
+
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = config('pagination.default_per_page');
+        }
 
         $allowedSorts = ['name', 'email'];
         if (!in_array($sort, $allowedSorts)) {
@@ -59,7 +65,7 @@ class UsersController extends Controller
                 });
             })
             ->orderBy($sort, $direction)
-            ->paginate(15)
+            ->paginate($perPage)
             ->withQueryString()
             ->through(function ($user) {
                 $user->avatar_url = $user->avatar_url;
@@ -70,12 +76,15 @@ class UsersController extends Controller
             'userList' => $users,
             'availableRoles' => Role::select('id', 'name')->get(),
             'availableTags' => Tag::select('id', 'name', 'color')->get(),
-            'filters'  => [
+            'filters' => [
                 'search' => $search,
                 'roles' => $roles,
+                'tags' => $tags,
                 'sort' => $sort,
                 'direction' => $direction,
+                'per_page' => $perPage,
             ],
+            'perPageOptions' => $allowedPerPage,
         ]);
     }
 
