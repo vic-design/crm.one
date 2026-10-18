@@ -1,9 +1,8 @@
- <script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Filter, X, Check } from 'lucide-vue-next';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
 const props = defineProps<{
@@ -17,7 +16,6 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
-
 const hasValue = computed(() => props.modelValue.length > 0);
 
 const toggle = (id: string | number) => {
@@ -65,21 +63,14 @@ const clear = (event: Event) => {
                     <div
                         v-for="option in options"
                         :key="option.id"
-                        class="flex items-center space-x-2 cursor-pointer hover:bg-zinc-900/50 p-1 rounded-md transition-colors"
+                        class="flex items-center justify-between p-2 rounded-md transition-colors cursor-pointer"
+                        :class="modelValue.includes(option.id) ? 'bg-zinc-800 border border-zinc-700' : 'hover:bg-zinc-900/50 border border-transparent'"
                         @click="toggle(option.id)"
                     >
-                        <Checkbox
-                            :id="`role-${option.id}`"
-                            :checked="modelValue.includes(option.id)"
-                            class="pointer-events-none"
-                        />
-                        <label
-                            :for="`role-${option.id}`"
-                            class="text-sm text-zinc-200 cursor-pointer flex-1 select-none"
-                        >
+                        <span class="text-sm text-zinc-200 select-none">
                             {{ option.name }}
-                        </label>
-                        <Check v-if="modelValue.includes(option.id)" class="h-4 w-4 text-blue-500 ml-auto" />
+                        </span>
+                        <Check v-if="modelValue.includes(option.id)" class="h-4 w-4 text-blue-500" />
                     </div>
 
                     <div v-if="options.length === 0" class="text-sm text-zinc-500 text-center py-2">

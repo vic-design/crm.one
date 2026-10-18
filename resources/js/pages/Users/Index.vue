@@ -169,6 +169,8 @@ const getPageNumber = (index: number) => {
                                 <ArrowDown v-else class="h-4 w-4 text-blue-500" />
                             </div>
                         </TableHead>
+                        <TableHead>Роли</TableHead>
+                        <TableHead>Теги</TableHead>
                         <TableHead class="text-right w-[120px]">Действия</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -187,6 +189,39 @@ const getPageNumber = (index: number) => {
                         </TableCell>
                         <TableCell class="text-zinc-300">
                             {{ user.email }}
+                        </TableCell>
+                        <TableCell>
+                            <div class="flex flex-wrap gap-1">
+                                <span
+                                    v-for="role in user.roles"
+                                    :key="role.id"
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                                >
+                                    {{ role.name }}
+                                </span>
+                                <span v-if="!user.roles || user.roles.length === 0" class="text-zinc-500 text-xs italic">
+                                    Нет ролей
+                                </span>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <div class="flex flex-wrap gap-1">
+                                <span
+                                    v-for="tag in user.tags"
+                                    :key="tag.id"
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                    :style="{
+                                        backgroundColor: tag.color ? tag.color + '20' : '#3f3f46',
+                                        color: tag.color || '#d4d4d8',
+                                        borderColor: tag.color ? tag.color + '50' : '#52525b'
+                                    }"
+                                >
+                                    {{ tag.name }}
+                                </span>
+                                <span v-if="!user.tags || user.tags.length === 0" class="text-zinc-500 text-xs italic">
+                                    Нет тегов
+                                </span>
+                            </div>
                         </TableCell>
                         <TableCell class="text-right whitespace-nowrap space-x-2">
                             <Button
@@ -213,7 +248,7 @@ const getPageNumber = (index: number) => {
                     </TableRow>
 
                     <TableRow v-if="userList.data.length === 0">
-                        <TableCell colspan="4" class="h-24 text-center text-zinc-500">
+                        <TableCell colspan="6" class="h-24 text-center text-zinc-500">
                             Пользователи не найдены
                         </TableCell>
                     </TableRow>
