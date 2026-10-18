@@ -2,25 +2,29 @@
 import { ref, computed, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { User, UserListResponse, UserFilters, Tag, BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, User, UserListResponse, UserFilters, Tag } from '@/types';
 import users from '@/routes/management/users';
 import Input from '@/components/ui/input/Input.vue';
-import Button from '@/components/ui/button/Button.vue';
 import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
-import {
-    Pagination, PaginationContent, PaginationEllipsis, PaginationItem,
-    PaginationNext, PaginationPrevious,
-} from '@/components/ui/pagination';
+import Button from '@/components/ui/button/Button.vue';
 import { Pencil, Plus, Trash, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-vue-next';
 import { usePermission } from '@/composables/usePermission';
 import { useTable } from '@/composables/useTable';
+
+// Диалоги
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
-import UserEditDialog from './Partials/UserEditDialog.vue';
 import UserDeleteDialog from './Partials/UserDeleteDialog.vue';
-import RoleFilter from '@/components/Filters/RoleFilter.vue';
-import TagFilter from '@/components/Filters/TagFilter.vue';
+
+// Новый компонент пагинации
+import Pagination from '@/components/pagination/Index.vue';
+import UserEditDialog from './Partials/UserEditDialog.vue';
 
 const props = defineProps<{
     userList: UserListResponse;
@@ -32,8 +36,8 @@ const props = defineProps<{
 
 const { can } = usePermission();
 
-const breadCrumbItems: BreadcrumbItem[] = [
-    { title: 'Пользователи', href: users.index() }
+const breadCrumbs: BreadcrumbItem[] = [
+    { title: 'Пользователи', href: users.index().url },
 ];
 
 const {
@@ -44,11 +48,11 @@ const {
     resetFilters,
 } = useTable<UserFilters>(users.index().url, props.filters);
 
-// Состояние фильтров
 const selectedRoles = ref<string[]>(props.filters?.roles ?? []);
 const selectedTags = ref<number[]>(props.filters?.tags ?? []);
+const currentPerPage = ref(props.userList.per_page || 20);
 
-// Синхронизация выбранных значений с объектом filters
+// Синхронизация фильтров с локальным состоянием
 watch(selectedRoles, (newVal) => {
     filters.value.roles = newVal.length > 0 ? newVal : undefined;
 });
@@ -57,103 +61,88 @@ watch(selectedTags, (newVal) => {
     filters.value.tags = newVal.length > 0 ? newVal : undefined;
 });
 
-// Проверка наличия активных фильтров
-const hasActiveFilters = computed(() => {
-    return !!filters.value.search || selectedRoles.value.length > 0 || selectedTags.value.length > 0;
-});
-
-// Сброс всех фильтров
-const resetAllFilters = () => {
-    selectedRoles.value = [];
-    selectedTags.value = [];
-    filters.value.search = '';
-    resetFilters();
-};
-
-// Диалоги
-const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
-const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
-const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
-const currentUser = ref<User | null>(null);
-
-const openEdit = (user: User) => {
-    currentUser.value = user;
-    editDialogRef.value?.openDialog(user);
-};
-
-// Числовые ссылки для пагинации (исключаем first и last)
-const numericLinks = computed(() => props.userList.links.slice(1, -1));
-
-// Номер страницы для отображения в таблице
-const getPageNumber = (index: number) => {
-    return (props.userList.current_page - 1) * props.userList.per_page + index + 1;
-};
-
-const currentPerPage = ref(props.filters?.per_page || 20);
-
 watch(currentPerPage, (newVal) => {
     filters.value.per_page = newVal;
 });
 
+// Синхронизация обратно, если фильтры были сброшены извне
 watch(() => props.filters?.per_page, (newVal) => {
     if (newVal && newVal !== currentPerPage.value) {
         currentPerPage.value = newVal;
     }
 });
+
+const hasActiveFilters = computed(() => {
+    return !!(filters.value.search || selectedRoles.value.length > 0 || selectedTags.value.length > 0);
+});
+
+const resetAllFilters = () => {
+    selectedRoles.value = [];
+    selectedTags.value = [];
+    resetFilters();
+};
+
+const createDialogRef = ref<InstanceType<typeof UserCreateDialog> | null>(null);
+const editDialogRef = ref<InstanceType<typeof UserEditDialog> | null>(null);
+const deleteDialogRef = ref<InstanceType<typeof UserDeleteDialog> | null>(null);
+
+const openEdit = (user: User) => {
+    editDialogRef.value?.openDialog(user);
+};
+
+const getPageNumber = (index: number) => {
+    return (props.userList.current_page - 1) * props.userList.per_page + index + 1;
+};
 </script>
 
 <template>
     <Head title="Пользователи" />
-    <AppLayout :breadCrumbItems="breadCrumbItems">
+    <AppLayout :breadcrumbs="breadCrumbs">
         <div class="p-6 space-y-6">
+            <!-- Заголовок и кнопка создания -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h1 class="text-2xl font-bold text-white">Пользователи</h1>
+                <Button v-if="can('create users')" @click="createDialogRef?.openDialog()">
+                    <Plus class="mr-2 h-4 w-4" />
+                    Создать
+                </Button>
+            </div>
 
-            <!-- Верхняя панель: Фильтры и кнопка создания -->
-            <div class="flex flex-col lg:flex-row lg:items-center gap-4">
-                <!-- Поиск -->
-                <div class="w-full lg:w-auto lg:flex-1 max-w-md">
+            <!-- Фильтры -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                <div class="w-full sm:w-auto sm:flex-1 max-w-md">
                     <Input
                         v-model="filters.search"
                         type="text"
                         placeholder="Поиск по имени или email..."
-                        class="h-9"
+                        class="w-full h-9"
                     />
                 </div>
-
-                <!-- Компоненты фильтров -->
                 <div class="flex items-center gap-2 flex-wrap">
                     <RoleFilter
                         v-model="selectedRoles"
                         :options="availableRoles"
                         label="Роли"
                     />
-
                     <TagFilter
                         v-model="selectedTags"
                         :options="availableTags"
                         label="Теги"
                     />
-
                     <Button
                         v-if="hasActiveFilters"
                         variant="ghost"
                         size="sm"
-                        class="h-9 text-zinc-400 hover:text-zinc-100 transition-opacity"
+                        class="h-9 text-zinc-400 hover:text-zinc-100"
                         @click="resetAllFilters"
                     >
                         <X class="mr-1.5 h-3.5 w-3.5" />
-                        Сбросить
+                        Сбросить всё
                     </Button>
                 </div>
-
-                <div class="flex-1 hidden lg:block"></div>
-
-                <Button v-if="can('create users')" @click="createDialogRef?.openDialog()" class="h-9">
-                    <Plus class="mr-2 h-4 w-4" />
-                    Создать
-                </Button>
             </div>
 
-            <!-- Таблица пользователей -->
+            <!-- Таблица -->
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -266,80 +255,21 @@ watch(() => props.filters?.per_page, (newVal) => {
                 </TableBody>
             </Table>
 
-            <!-- Панель пагинации и выбора количества записей -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4 mt-4">
-
-                <div class="flex items-center gap-2 sm:justify-start justify-center">
-                    <span class="text-sm text-zinc-400">Показывать по:</span>
-                    <select
-                        v-model.number="currentPerPage"
-                        class="h-9 w-20 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-zinc-700 hover:bg-zinc-900 transition-colors cursor-pointer"
-                    >
-                        <option
-                            v-for="option in perPageOptions || [20, 30, 50]"
-                            :key="option"
-                            :value="option"
-                        >
-                            {{ option }}
-                        </option>
-                    </select>
-                    <span class="text-sm text-zinc-500">
-                        из {{ userList.total }}
-                    </span>
-                </div>
-
-                <div v-if="Math.ceil(userList.total / userList.per_page) > 1" class="flex justify-center sm:col-start-2 sm:col-end-2">
-                    <Pagination
-                        v-slot="{ page }"
-                        :items-per-page="userList.per_page"
-                        :total="userList.total"
-                        :default-page="1"
-                        :page="userList.current_page"
-                    >
-                        <PaginationContent>
-                            <PaginationItem :value="userList.current_page - 1 || 1">
-                                <Link v-if="userList.prev_page_url" :href="userList.prev_page_url" preserve-state preserve-scroll>
-                                    <PaginationPrevious />
-                                </Link>
-                                <PaginationPrevious v-else class="pointer-events-none opacity-50" />
-                            </PaginationItem>
-
-                            <template v-for="(link, idx) in numericLinks" :key="idx">
-                                <PaginationItem v-if="link.label === '...'" :value="idx">
-                                    <PaginationEllipsis />
-                                </PaginationItem>
-                                <PaginationItem v-else :value="Number(link.label)" :is-active="link.active">
-                                    <Link
-                                        :href="link.url || '#'"
-                                        preserve-state
-                                        preserve-scroll
-                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 border transition-colors"
-                                        :class="{
-                                            'bg-blue-600 text-white border-blue-600': link.active,
-                                            'bg-zinc-900 text-zinc-200 border-zinc-800 hover:bg-zinc-800': !link.active && link.url,
-                                            'pointer-events-none opacity-30': !link.url
-                                        }"
-                                        v-html="link.label"
-                                    />
-                                </PaginationItem>
-                            </template>
-
-                            <PaginationItem :value="userList.current_page + 1">
-                                <Link v-if="userList.next_page_url" :href="userList.next_page_url" preserve-state preserve-scroll>
-                                    <PaginationNext />
-                                </Link>
-                                <PaginationNext v-else class="pointer-events-none opacity-50" />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
-                </div>
-
-                <div class="hidden sm:block"></div>
-            </div>
+            <!-- Пагинация (инкапсулированный компонент) -->
+            <Pagination
+                v-model:per-page="currentPerPage"
+                :total="userList.total"
+                :per-page="userList.per_page"
+                :current-page="userList.current_page"
+                :links="userList.links"
+                :prev-page-url="userList.prev_page_url"
+                :next-page-url="userList.next_page_url"
+                :per-page-options="perPageOptions || [20, 30, 50]"
+            />
 
             <!-- Диалоги -->
-            <UserCreateDialog ref="createDialogRef" :available-roles="availableRoles" />
-            <UserEditDialog ref="editDialogRef" :user="currentUser" :available-roles="availableRoles" />
+            <UserCreateDialog ref="createDialogRef" :available-roles="availableRoles" :available-tags="availableTags" />
+            <UserEditDialog ref="editDialogRef" :available-roles="availableRoles" :available-tags="availableTags" />
             <UserDeleteDialog ref="deleteDialogRef" />
         </div>
     </AppLayout>
