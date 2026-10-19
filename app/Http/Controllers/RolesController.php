@@ -26,24 +26,43 @@ class RolesController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $search = $request->input('search');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        $perPage = (int) $request->input('per_page', config('pagination.default_per_page'));
+        $allowedPerPage = config('pagination.per_page_options');
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = config('pagination.default_per_page');
+        }
+
+        $allowedSorts = ['name', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
 
         $roles = Role::query()
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
             })
-            ->orderBy('name', 'asc')
-            ->with('permissions:id,name')
-            ->paginate(10)
+            ->with('permissions:id,name,guard_name')
+            ->orderBy($sort, $direction)
+            ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('Roles/Index', [
-            'roleList'    => $roles,
-            'filters'     => ['search' => $search],
+            'roleList' => $roles,
             'permissions' => Permission::select(['id', 'name', 'guard_name'])->get(),
-            'guard_name'  => 'web',
+            'guard_name' => 'web',
+            'filters' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
+            'perPageOptions' => $allowedPerPage,
         ]);
     }
-
     /**
      * Summary of store
      * @param RolesCreateRequest $request

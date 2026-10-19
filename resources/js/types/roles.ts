@@ -26,3 +26,10 @@ export interface RoleListResponse {
     prev_page_url: string | null;
     next_page_url: string | null;
 }
+
+export interface RoleFilters {
+    search?: string;
+    sort?: string;
+    direction?: 'asc' | 'desc';
+    per_page?: number;
+}

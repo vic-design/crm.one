@@ -5,3 +5,4 @@ export * from './roles';
 export * from './users';
 export * from './tags';
 export * from './contacts';
+export * from './activity-log';

@@ -25,6 +25,12 @@ class TagsController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
+        $perPage = (int) $request->input('per_page', config('pagination.default_per_page'));
+        $allowedPerPage = config('pagination.per_page_options');
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = config('pagination.default_per_page');
+        }
+
         $allowedSorts = ['name', 'created_at'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'name';
@@ -36,7 +42,7 @@ class TagsController extends Controller
                 $query->where('name', 'like', "%{$search}%");
             })
             ->orderBy($sort, $direction)
-            ->paginate(15)
+            ->paginate($perPage)
             ->withQueryString();
 
         $tags->getCollection()->transform(function ($tag) {
@@ -52,7 +58,9 @@ class TagsController extends Controller
                 'search' => $search,
                 'sort' => $sort,
                 'direction' => $direction,
-            ]
+                'per_page' => $perPage,
+            ],
+            'perPageOptions' => $allowedPerPage,
         ]);
     }
 

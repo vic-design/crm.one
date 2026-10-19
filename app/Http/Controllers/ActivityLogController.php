@@ -23,6 +23,12 @@ class ActivityLogController extends Controller
         $to = $request->input('to');
         $type = $request->input('type');
 
+        $perPage = (int) $request->input('per_page', config('pagination.default_per_page'));
+        $allowedPerPage = config('pagination.per_page_options');
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = config('pagination.default_per_page');
+        }
+
         $query = Activity::with(['causer', 'subject'])->latest();
 
         if ($from) {
@@ -35,14 +41,12 @@ class ActivityLogController extends Controller
             $query->where('log_name', $type);
         }
 
-        $logs = $query->paginate(25)->withQueryString();
+        $logs = $query->paginate($perPage)->withQueryString();
 
         $selectedLog = null;
         if ($request->has('log_id')) {
             $selectedLog = Activity::with(['causer', 'subject'])->find($request->input('log_id'));
         }
-
-        $availableTypes = Activity::distinct()->pluck('log_name')->toArray();
 
         return Inertia::render('ActivityLog/Index', [
             'logs' => $logs,
@@ -51,8 +55,10 @@ class ActivityLogController extends Controller
                 'from' => $from,
                 'to' => $to,
                 'type' => $type,
+                'per_page' => $perPage,
             ],
-            'availableTypes' => $availableTypes,
+            'availableTypes' => Activity::distinct()->pluck('log_name')->toArray(),
+            'perPageOptions' => $allowedPerPage,
         ]);
     }
 

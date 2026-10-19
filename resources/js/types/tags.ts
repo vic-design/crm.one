@@ -12,6 +12,7 @@ export interface TagFilters {
     search?: string;
     sort?: string;
     direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 export interface TagListResponse {
