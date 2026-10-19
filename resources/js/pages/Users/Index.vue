@@ -19,8 +19,8 @@ import { usePermission } from '@/composables/usePermission';
 import { useTable } from '@/composables/useTable';
 
 // Компоненты фильтров
-import RoleFilter from '@/components/Filters/RoleFilter.vue';
-import TagFilter from '@/components/Filters/TagFilter.vue';
+import RoleFilter from '@/components/filters/RoleFilter.vue';
+import TagFilter from '@/components/filters/TagFilter.vue';
 
 // Диалоги
 import UserCreateDialog from './Partials/UserCreateDialog.vue';
